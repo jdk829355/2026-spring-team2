@@ -1,4 +1,4 @@
-CREATE TABLE "user" (
+CREATE TABLE "users" (
                         "id"        BIGINT          NOT NULL,
                         "name"      VARCHAR(255)    NOT NULL,
                         "email"     VARCHAR(255)    NOT NULL,
@@ -51,19 +51,20 @@ CREATE TABLE "planner_goods" (
 );
 
 CREATE TABLE "store_admin" (
+                               "id"        BIGINT  NOT NULL,
                                "user_id"   BIGINT  NOT NULL,
                                "store_id"  BIGINT  NOT NULL
 );
 
 -- PK
-ALTER TABLE "user"          ADD CONSTRAINT "PK_USER"          PRIMARY KEY ("id");
+ALTER TABLE "users"         ADD CONSTRAINT "PK_USER"          PRIMARY KEY ("id");
 ALTER TABLE "animation"     ADD CONSTRAINT "PK_ANIMATION"     PRIMARY KEY ("id");
 ALTER TABLE "goods"         ADD CONSTRAINT "PK_GOODS"         PRIMARY KEY ("id");
 ALTER TABLE "store"         ADD CONSTRAINT "PK_STORE"         PRIMARY KEY ("id");
 ALTER TABLE "store_goods"   ADD CONSTRAINT "PK_STORE_GOODS"   PRIMARY KEY ("id");
 ALTER TABLE "planner"       ADD CONSTRAINT "PK_PLANNER"       PRIMARY KEY ("id");
 ALTER TABLE "planner_goods" ADD CONSTRAINT "PK_PLANNER_GOODS" PRIMARY KEY ("id");
-ALTER TABLE "store_admin"   ADD CONSTRAINT "PK_STORE_ADMIN"   PRIMARY KEY ("user_id", "store_id");
+ALTER TABLE "store_admin"   ADD CONSTRAINT "PK_STORE_ADMIN"   PRIMARY KEY ("id");
 
 -- FK
 ALTER TABLE "goods"
@@ -80,7 +81,7 @@ ALTER TABLE "store_goods"
 
 ALTER TABLE "planner"
     ADD CONSTRAINT "FK_user_TO_planner"
-        FOREIGN KEY ("user_id") REFERENCES "user" ("id");
+        FOREIGN KEY ("user_id") REFERENCES "users" ("id");
 
 ALTER TABLE "planner_goods"
     ADD CONSTRAINT "FK_store_goods_TO_planner_goods"
@@ -92,8 +93,10 @@ ALTER TABLE "planner_goods"
 
 ALTER TABLE "store_admin"
     ADD CONSTRAINT "FK_user_TO_store_admin"
-        FOREIGN KEY ("user_id") REFERENCES "user" ("id");
+        FOREIGN KEY ("user_id") REFERENCES "users" ("id");
 
 ALTER TABLE "store_admin"
     ADD CONSTRAINT "FK_store_TO_store_admin"
         FOREIGN KEY ("store_id") REFERENCES "store" ("id");
+
+ALTER TABLE "store_admin"   ADD CONSTRAINT "UQ_STORE_ADMIN"     UNIQUE ("user_id", "store_id");
