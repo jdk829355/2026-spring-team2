@@ -1,4 +1,4 @@
-CREATE TABLE "user" (
+CREATE TABLE "users" (
                         "id"        BIGINT          NOT NULL,
                         "name"      VARCHAR(255)    NOT NULL,
                         "email"     VARCHAR(255)    NOT NULL,
@@ -56,7 +56,7 @@ CREATE TABLE "store_admin" (
 );
 
 -- PK
-ALTER TABLE "user"          ADD CONSTRAINT "PK_USER"          PRIMARY KEY ("id");
+ALTER TABLE "users"         ADD CONSTRAINT "PK_USER"          PRIMARY KEY ("id");
 ALTER TABLE "animation"     ADD CONSTRAINT "PK_ANIMATION"     PRIMARY KEY ("id");
 ALTER TABLE "goods"         ADD CONSTRAINT "PK_GOODS"         PRIMARY KEY ("id");
 ALTER TABLE "store"         ADD CONSTRAINT "PK_STORE"         PRIMARY KEY ("id");
@@ -80,7 +80,7 @@ ALTER TABLE "store_goods"
 
 ALTER TABLE "planner"
     ADD CONSTRAINT "FK_user_TO_planner"
-        FOREIGN KEY ("user_id") REFERENCES "user" ("id");
+        FOREIGN KEY ("user_id") REFERENCES "users" ("id");
 
 ALTER TABLE "planner_goods"
     ADD CONSTRAINT "FK_store_goods_TO_planner_goods"
@@ -92,7 +92,7 @@ ALTER TABLE "planner_goods"
 
 ALTER TABLE "store_admin"
     ADD CONSTRAINT "FK_user_TO_store_admin"
-        FOREIGN KEY ("user_id") REFERENCES "user" ("id");
+        FOREIGN KEY ("user_id") REFERENCES "users" ("id");
 
 ALTER TABLE "store_admin"
     ADD CONSTRAINT "FK_store_TO_store_admin"
