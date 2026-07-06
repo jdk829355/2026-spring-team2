@@ -20,6 +20,7 @@ CREATE TABLE "goods" (
 CREATE TABLE "store" (
                          "id"            BIGINT          NOT NULL,
                          "name"          VARCHAR(255)    NOT NULL,
+                         "description"   VARCHAR(255)    NULL,
                          "type"          VARCHAR(255)    NOT NULL,
                          "start_date"    DATE            NULL,
                          "end_date"      DATE            NULL,

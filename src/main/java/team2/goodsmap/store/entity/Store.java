@@ -22,6 +22,8 @@ public class Store {
     @Column(nullable = false)
     private String name;
 
+    private String description;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private StoreType type;

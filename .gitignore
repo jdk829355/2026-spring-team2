@@ -37,3 +37,6 @@ out/
 .vscode/
 
 .env
+
+### quarkify (local-only) ###
+.quarkify/
