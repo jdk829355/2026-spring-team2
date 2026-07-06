@@ -2,9 +2,13 @@ package team2.goodsmap.user.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.CreatedDate;
 import team2.goodsmap.user.enums.UserRole;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
@@ -28,4 +32,24 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private UserRole role;
+
+    @Column(nullable = false)
+    private boolean isVerified = false;
+
+    @CreatedDate
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
+
+    @Builder
+    public User(String name, String email, String password, UserRole role) {
+        this.name = name;
+        this.email = email;
+        this.password = password;
+        this.role = role;
+        this.isVerified = false;
+    }
+
+    public void verify() {
+        this.isVerified = true;
+    }
 }
