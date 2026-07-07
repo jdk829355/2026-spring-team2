@@ -2,6 +2,7 @@ package team2.goodsmap.store.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import team2.goodsmap.store.enums.StoreType;
@@ -40,4 +41,16 @@ public class Store {
 
     @Column(nullable = false, precision = 10, scale = 7)
     private BigDecimal lng;
+
+    @Builder
+    public Store(String name, String description, StoreType type, LocalDate startDate, LocalDate endDate, String address, BigDecimal lat, BigDecimal lng){
+        this.name = name;
+        this.description = description;
+        this.type = type;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.address = address;
+        this.lat = lat;
+        this.lng = lng;
+    }
 }

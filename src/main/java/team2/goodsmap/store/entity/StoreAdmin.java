@@ -2,6 +2,7 @@ package team2.goodsmap.store.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import team2.goodsmap.user.entity.User;
@@ -25,4 +26,10 @@ public class StoreAdmin {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
+
+    @Builder
+    public StoreAdmin(User user, Store store){
+        this.user = user;
+        this.store = store;
+    }
 }
