@@ -24,6 +24,8 @@ public class StoreService {
     private final UserRepository userRepository;
 
     public StoreResponse createStore(CreateStoreRequest request, Long userId) {
+        validateCreateStoreRequest(request);
+
         User user = userRepository.findUserByIdAndRole(userId, UserRole.STORE).orElseThrow(
                 () -> new IllegalArgumentException("사용자가 없습니다.")
         );
@@ -50,13 +52,29 @@ public class StoreService {
     }
 
     public List<StoreResponse> getStoreByUserId(Long userId) {
-        List<StoreAdmin> storeAdmins = storeAdminRepository.findAllByUserId(userId);
-        if (storeAdmins.isEmpty()) {
-            throw new IllegalArgumentException("해당 사용자가 관리하는 가게가 없습니다.");
-        }
-        return storeAdmins.stream()
-                .map(StoreAdmin::getStore)
+        return storeRepository.findAllByAdminUserId(userId).stream()
                 .map(StoreResponse::from)
                 .toList();
+    }
+
+    private void validateCreateStoreRequest(CreateStoreRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("요청 값이 없습니다.");
+        }
+        if (request.name() == null || request.name().isBlank()) {
+            throw new IllegalArgumentException("업체명은 필수입니다.");
+        }
+        if (request.type() == null) {
+            throw new IllegalArgumentException("업체 타입은 필수입니다.");
+        }
+        if (request.address() == null || request.address().isBlank()) {
+            throw new IllegalArgumentException("주소는 필수입니다.");
+        }
+        if (request.lat() == null || request.lng() == null) {
+            throw new IllegalArgumentException("위도와 경도는 필수입니다.");
+        }
+        if (request.startDate() != null && request.endDate() != null && request.startDate().isAfter(request.endDate())) {
+            throw new IllegalArgumentException("시작일은 종료일보다 늦을 수 없습니다.");
+        }
     }
 }
