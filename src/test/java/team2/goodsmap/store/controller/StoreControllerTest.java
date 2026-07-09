@@ -104,6 +104,6 @@ class StoreControllerTest {
         // when & then
         mockMvc.perform(get("/api/v1/stores/{storeId}/goods", 999L))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.success").value(false));
+                .andExpect(jsonPath("$.status").value(404));
     }
 }

@@ -102,7 +102,7 @@ class GoodsControllerTest {
         // when & then
         mockMvc.perform(get("/api/v1/goods/{goodsId}", 999L))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.message").value("존재하지 않는 상품입니다. id=999"));
     }
 }
