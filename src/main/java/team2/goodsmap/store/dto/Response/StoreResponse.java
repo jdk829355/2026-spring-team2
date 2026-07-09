@@ -1,4 +1,4 @@
-package team2.goodsmap.store.dto;
+package team2.goodsmap.store.dto.Response;
 
 import lombok.Builder;
 import lombok.Getter;

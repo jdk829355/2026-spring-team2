@@ -5,9 +5,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import team2.goodsmap.global.exception.NotFoundException;
 import team2.goodsmap.global.util.GeoUtils;
-import team2.goodsmap.store.dto.StoreGoodsItemResponse;
-import team2.goodsmap.store.dto.StoreMapResponse;
-import team2.goodsmap.store.dto.StoreResponse;
+import team2.goodsmap.store.dto.Response.StoreGoodsItemResponse;
+import team2.goodsmap.store.dto.Response.StoreMapResponse;
+import team2.goodsmap.store.dto.Response.StoreResponse;
 import team2.goodsmap.store.repository.StoreGoodsRepository;
 import team2.goodsmap.store.repository.StoreRepository;
 

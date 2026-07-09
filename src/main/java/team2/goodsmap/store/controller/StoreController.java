@@ -8,9 +8,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import team2.goodsmap.global.common.ApiResponse;
-import team2.goodsmap.store.dto.StoreGoodsItemResponse;
-import team2.goodsmap.store.dto.StoreMapResponse;
-import team2.goodsmap.store.dto.StoreResponse;
+import team2.goodsmap.store.dto.Response.StoreGoodsItemResponse;
+import team2.goodsmap.store.dto.Response.StoreMapResponse;
+import team2.goodsmap.store.dto.Response.StoreResponse;
 import team2.goodsmap.store.service.StoreService;
 
 import java.util.List;
