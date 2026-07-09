@@ -5,9 +5,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import team2.goodsmap.global.exception.NotFoundException;
+import team2.goodsmap.global.jwt.JwtTokenProvider;
 import team2.goodsmap.store.dto.response.StoreGoodsItemResponse;
 import team2.goodsmap.store.dto.response.StoreMapResponse;
 import team2.goodsmap.store.dto.response.StoreResponse;
@@ -32,6 +34,12 @@ class StoreControllerTest {
 
     @MockitoBean
     private StoreService storeService;
+
+    @MockitoBean
+    private JwtTokenProvider jwtTokenProvider;
+
+    @MockitoBean
+    private JpaMetamodelMappingContext jpaMetamodelMappingContext;
 
     @Test
     @DisplayName("GET /api/v1/stores - 스토어 목록을 조회한다")

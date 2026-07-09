@@ -178,7 +178,7 @@ public class StoreService {
                 .map(store -> {
                     double distance = GeoUtils.distanceMeters(lat, lng, store.getLat(), store.getLng());
                     return new StoreMapResponse(
-                            store.getId(), store.getName(), store.getType(), store.getAddress(),
+                            store.getId(), store.getName(), store.getType().name(), store.getAddress(),
                             store.getLat(), store.getLng(), store.getStartDate(), store.getEndDate(),
                             distance);
                 })

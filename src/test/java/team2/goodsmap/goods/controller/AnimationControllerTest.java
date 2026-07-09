@@ -5,8 +5,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import team2.goodsmap.global.jwt.JwtTokenProvider;
 import team2.goodsmap.goods.dto.AnimationResponse;
 import team2.goodsmap.goods.service.AnimationService;
 
@@ -32,6 +34,12 @@ class AnimationControllerTest {
 
     @MockitoBean
     private AnimationService animationService;
+
+    @MockitoBean
+    private JwtTokenProvider jwtTokenProvider;
+
+    @MockitoBean
+    private JpaMetamodelMappingContext jpaMetamodelMappingContext;
 
     @Test
     @DisplayName("GET /api/v1/animations - 작품 목록을 정상 조회한다")

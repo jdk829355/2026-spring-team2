@@ -6,13 +6,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
+import team2.goodsmap.global.config.SecurityConfig;
 import team2.goodsmap.global.exception.BadRequestException;
 import team2.goodsmap.global.exception.NotFoundException;
+import team2.goodsmap.global.jwt.JwtTokenProvider;
 import team2.goodsmap.planner.dto.PlannerGoodsCreateRequest;
 import team2.goodsmap.planner.dto.PlannerGoodsCreateResponse;
 import team2.goodsmap.planner.service.PlannerGoodsService;
@@ -34,7 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * @AuthenticationPrincipal 동작만 독립적으로 검증한다.
  */
 @WebMvcTest(PlannerGoodsController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@Import({SecurityConfig.class})
 class PlannerGoodsControllerTest {
 
     private static final Long USER_ID = 1L;
@@ -47,6 +51,12 @@ class PlannerGoodsControllerTest {
 
     @MockitoBean
     private PlannerGoodsService plannerGoodsService;
+
+    @MockitoBean
+    private JwtTokenProvider jwtTokenProvider;
+
+    @MockitoBean
+    private JpaMetamodelMappingContext jpaMetamodelMappingContext;
 
     private UsernamePasswordAuthenticationToken loginAs(Long userId) {
         return new UsernamePasswordAuthenticationToken(

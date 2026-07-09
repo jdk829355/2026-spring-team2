@@ -5,9 +5,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import team2.goodsmap.global.exception.NotFoundException;
+import team2.goodsmap.global.jwt.JwtTokenProvider;
 import team2.goodsmap.goods.dto.GoodsDetailResponse;
 import team2.goodsmap.goods.dto.GoodsSimpleResponse;
 import team2.goodsmap.goods.service.GoodsService;
@@ -30,6 +32,12 @@ class GoodsControllerTest {
 
     @MockitoBean
     private GoodsService goodsService;
+
+    @MockitoBean
+    private JwtTokenProvider jwtTokenProvider;
+
+    @MockitoBean
+    private JpaMetamodelMappingContext jpaMetamodelMappingContext;
 
     @Test
     @DisplayName("GET /api/v1/goods?q= - 등록용 상품 목록을 조회한다")

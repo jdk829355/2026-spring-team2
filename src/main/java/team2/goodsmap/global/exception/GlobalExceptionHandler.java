@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
@@ -21,12 +22,13 @@ public class GlobalExceptionHandler {
 
     // @Valid 검증 실패 (이메일 형식, 비밀번호 길이 등)
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException e) {
-        List<ErrorResponse.FieldError> fieldErrors = e.getBindingResult().getFieldErrors().stream()
-                .map(fe -> new ErrorResponse.FieldError(fe.getField(), fe.getDefaultMessage()))
-                .toList();
+    public ResponseEntity<ApiResponse<?>> handleValidation(MethodArgumentNotValidException e) {
+        String message = e.getBindingResult().getFieldErrors().stream()
+                .findFirst()
+                .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
+                .orElse("입력값이 올바르지 않습니다.");
         return ResponseEntity.badRequest()
-                .body(ErrorResponse.of(HttpStatus.BAD_REQUEST, "입력값이 올바르지 않습니다.", fieldErrors));
+                .body(ApiResponse.fail(message));
     }
 
     // 비즈니스 로직 오류 (이메일 중복, 인증번호 불일치 등)
@@ -74,25 +76,23 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(NotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleNotFoundException(NotFoundException e) {
+    public ResponseEntity<ApiResponse<?>> handleNotFoundException(NotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ErrorResponse.of(HttpStatus.NOT_FOUND, e.getMessage()));
+                .body(ApiResponse.fail(e.getMessage()));
     }
 
-    // @Valid 검증 실패 시 (예: storeGoodsId 누락)
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<?>> handleValidation(MethodArgumentNotValidException e) {
-        String message = e.getBindingResult().getFieldErrors().stream()
-                .findFirst()
-                .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
-                .orElse("잘못된 요청입니다.");
-        return ResponseEntity.badRequest().body(ApiResponse.fail(message));
-    }
-
-    // 우리가 직접 던지는 400 (plannerId/date 둘 다 없음, 날짜 형식 오류 등)
+    // 커스텀 BadRequestException
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ApiResponse<?>> handleBadRequest(BadRequestException e) {
-        return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.fail(e.getMessage()));
+    }
+
+    // 필수 요청 파라미터 누락
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiResponse<?>> handleMissingParams(MissingServletRequestParameterException e) {
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.fail("필수 요청 파라미터가 누락되었습니다: " + e.getParameterName()));
     }
 
 }
