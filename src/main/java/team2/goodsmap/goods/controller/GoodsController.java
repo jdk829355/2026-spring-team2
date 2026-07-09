@@ -26,7 +26,7 @@ public class GoodsController {
      * GET /api/v1/goods?q=
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<?>> getGoodsForRegistration(
+    public ResponseEntity<ApiResponse<List<GoodsSimpleResponse>>> getGoodsForRegistration(
             @RequestParam(required = false) String q
     ) {
         List<GoodsSimpleResponse> result = goodsService.getGoodsForRegistration(q);
@@ -38,7 +38,7 @@ public class GoodsController {
      * GET /api/v1/goods/search?animationId=&region=&keyword=
      */
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<?>> searchGoods(
+    public ResponseEntity<ApiResponse<List<GoodsSimpleResponse>>> searchGoods(
             @RequestParam(required = false) Long animationId,
             @RequestParam(required = false) String region,
             @RequestParam(required = false) String keyword
@@ -52,7 +52,7 @@ public class GoodsController {
      * GET /api/v1/goods/{goodsId}
      */
     @GetMapping("/{goodsId}")
-    public ResponseEntity<ApiResponse<?>> getGoodsDetail(@PathVariable Long goodsId) {
+    public ResponseEntity<ApiResponse<GoodsDetailResponse>> getGoodsDetail(@PathVariable Long goodsId) {
         GoodsDetailResponse result = goodsService.getGoodsDetail(goodsId);
         return ResponseEntity.ok(ApiResponse.success(result));
     }

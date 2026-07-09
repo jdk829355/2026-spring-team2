@@ -22,7 +22,7 @@ public class RegionController {
      * GET /api/v1/region
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<?>> getRegions() {
+    public ResponseEntity<ApiResponse<List<String>>> getRegions() {
         List<String> result = regionService.getRegions();
         return ResponseEntity.ok(ApiResponse.success(result));
     }

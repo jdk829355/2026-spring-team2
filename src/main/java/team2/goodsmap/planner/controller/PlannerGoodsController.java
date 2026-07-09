@@ -25,7 +25,7 @@ public class PlannerGoodsController {
      * POST /api/v1/planner-goods
      */
     @PostMapping
-    public ResponseEntity<ApiResponse<?>> createPlannerGoods(
+    public ResponseEntity<ApiResponse<PlannerGoodsCreateResponse>> createPlannerGoods(
             @AuthenticationPrincipal Long userId,
             @Valid @RequestBody PlannerGoodsCreateRequest requestDto
     ) {

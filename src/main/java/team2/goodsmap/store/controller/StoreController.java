@@ -27,7 +27,7 @@ public class StoreController {
      * GET /api/v1/stores?animationId=&region=&keyword=
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<?>> getStores(
+    public ResponseEntity<ApiResponse<List<StoreResponse>>> getStores(
             @RequestParam(required = false) Long animationId,
             @RequestParam(required = false) String region,
             @RequestParam(required = false) String keyword
@@ -41,7 +41,7 @@ public class StoreController {
      * GET /api/v1/stores/map?lat=&lng=&radius=&animationId=&region=
      */
     @GetMapping("/map")
-    public ResponseEntity<ApiResponse<?>> getStoresForMap(
+    public ResponseEntity<ApiResponse<List<StoreMapResponse>>> getStoresForMap(
             @RequestParam double lat,
             @RequestParam double lng,
             @RequestParam(required = false) Double radius,
@@ -57,7 +57,7 @@ public class StoreController {
      * GET /api/v1/stores/{storeId}/goods
      */
     @GetMapping("/{storeId}/goods")
-    public ResponseEntity<ApiResponse<?>> getStoreGoods(@PathVariable Long storeId) {
+    public ResponseEntity<ApiResponse<List<StoreGoodsItemResponse>>> getStoreGoods(@PathVariable Long storeId) {
         List<StoreGoodsItemResponse> result = storeService.getStoreGoods(storeId);
         return ResponseEntity.ok(ApiResponse.success(result));
     }
