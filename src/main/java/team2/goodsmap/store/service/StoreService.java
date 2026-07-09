@@ -5,14 +5,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import team2.goodsmap.global.exception.NotFoundException;
 import team2.goodsmap.global.util.GeoUtils;
+import team2.goodsmap.goods.dto.GoodsResponse;
+import team2.goodsmap.goods.repository.GoodsRepository;
+import team2.goodsmap.store.dto.request.AddExistingStoreGoodsRequest;
+import team2.goodsmap.store.dto.request.AddNewStoreGoodsRequest;
 import team2.goodsmap.store.dto.request.AddStoreAdminRequest;
 import team2.goodsmap.store.dto.request.CreateStoreRequest;
-import team2.goodsmap.store.dto.response.StoreAdminResponse;
-import team2.goodsmap.store.dto.response.StoreGoodsItemResponse;
-import team2.goodsmap.store.dto.response.StoreMapResponse;
-import team2.goodsmap.store.dto.response.StoreResponse;
+import team2.goodsmap.store.dto.response.*;
 import team2.goodsmap.store.entity.Store;
 import team2.goodsmap.store.entity.StoreAdmin;
+import team2.goodsmap.store.entity.StoreGoods;
 import team2.goodsmap.store.repository.StoreAdminRepository;
 import team2.goodsmap.store.repository.StoreGoodsRepository;
 import team2.goodsmap.store.repository.StoreRepository;
@@ -35,6 +37,7 @@ public class StoreService {
     private final StoreAdminRepository storeAdminRepository;
     private final UserRepository userRepository;
     private final StoreGoodsRepository storeGoodsRepository;  //
+    private final GoodsRepository goodsRepository;
 
 
     public StoreResponse createStore(CreateStoreRequest request, Long userId) {
@@ -157,6 +160,46 @@ public class StoreService {
         }
 
         storeAdminRepository.delete(target);
+    }
+
+    // StoreGoods를 생성 (Goods도 새로 만든 경우) - POST /api/v1/stores/{storeId}/goods/new
+    public StoreGoodsResponse createStoreGoods (AddNewStoreGoodsRequest request, GoodsResponse goodsResponse, Long userId, Long storeId) {
+        // 업체 관리자 여부 확인
+        if (!storeAdminRepository.existsByUserIdAndStoreId(userId, storeId)){
+            throw new IllegalArgumentException("상품 추가 권한이 없습니다.");
+        }
+        // StoreGoods 생성
+        StoreGoods storeGoods = StoreGoods.builder()
+                .price(request.price())
+                .stock(request.stock())
+                .goods(goodsRepository.findById(goodsResponse.id()).orElseThrow(() -> new IllegalArgumentException("상품이 없습니다.")))
+                .store(storeRepository.findById(storeId).orElseThrow(() -> new IllegalArgumentException("업체가 없습니다.")))
+                .imagePath(request.imagePath())
+                .build();
+
+        storeGoodsRepository.save(storeGoods);
+        // StoreGoodsResponse 반환
+        return StoreGoodsResponse.from(storeGoods);
+    }
+
+    // StoreGoods를 생성 (Goods가 기존에 있는 경우) - POST /api/v1/stores/{storeId}/goods
+    public StoreGoodsResponse createStoreGoods (AddExistingStoreGoodsRequest request, Long userId, Long storeId) {
+        // 업체 관리자 여부 확인
+        if (!storeAdminRepository.existsByUserIdAndStoreId(userId, storeId)){
+            throw new IllegalArgumentException("상품 추가 권한이 없습니다.");
+        }
+        // StoreGoods 생성
+        StoreGoods storeGoods = StoreGoods.builder()
+                .price(request.price())
+                .stock(request.stock())
+                .goods(goodsRepository.findById(request.goodsId()).orElseThrow(() -> new IllegalArgumentException("상품이 없습니다.")))
+                .store(storeRepository.findById(storeId).orElseThrow(() -> new IllegalArgumentException("업체가 없습니다.")))
+                .imagePath(request.imagePath())
+                .build();
+
+        storeGoodsRepository.save(storeGoods);
+        // StoreGoodsResponse 반환
+        return StoreGoodsResponse.from(storeGoods);
     }
 
     // 재고 조회(Public) 3개 메서드

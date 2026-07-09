@@ -2,6 +2,7 @@ package team2.goodsmap.store.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
@@ -41,4 +42,13 @@ public class StoreGoods {
     @CreatedDate
     @Column(updatable = false)
     private LocalDateTime createdAt;
+
+    @Builder
+    public StoreGoods(int price, int stock, String imagePath, Goods goods, Store store) {
+        this.price = price;
+        this.stock = stock;
+        this.imagePath = imagePath;
+        this.goods = goods;
+        this.store = store;
+    }
 }

@@ -1,4 +1,9 @@
 package team2.goodsmap.goods.dto;
 
-public record CreateGoodsRequest() {
+import jakarta.validation.constraints.NotBlank;
+
+public record CreateGoodsRequest(
+        @NotBlank Long animationId,
+        @NotBlank String name
+) {
 }

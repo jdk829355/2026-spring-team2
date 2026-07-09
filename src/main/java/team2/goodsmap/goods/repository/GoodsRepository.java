@@ -1,5 +1,6 @@
 package team2.goodsmap.goods.repository;
 
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -27,4 +28,6 @@ public interface GoodsRepository extends JpaRepository<Goods, Long> {
     List<Goods> searchGoods(@Param("animationId") Long animationId,
                             @Param("region") String region,
                             @Param("keyword") String keyword);
+
+    boolean existsByName(@NotBlank String name);
 }

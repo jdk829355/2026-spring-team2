@@ -4,9 +4,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import team2.goodsmap.global.exception.NotFoundException;
+import team2.goodsmap.goods.dto.CreateGoodsRequest;
 import team2.goodsmap.goods.dto.GoodsDetailResponse;
+import team2.goodsmap.goods.dto.GoodsResponse;
 import team2.goodsmap.goods.dto.GoodsSimpleResponse;
+import team2.goodsmap.goods.entity.Animation;
 import team2.goodsmap.goods.entity.Goods;
+import team2.goodsmap.goods.repository.AnimationRepository;
 import team2.goodsmap.goods.repository.GoodsRepository;
 import team2.goodsmap.store.entity.StoreGoods;
 import team2.goodsmap.store.repository.StoreGoodsRepository;
@@ -20,6 +24,7 @@ public class GoodsService {
 
     private final GoodsRepository goodsRepository;
     private final StoreGoodsRepository storeGoodsRepository;
+    private final AnimationRepository animationRepository;
 
     // 상품 목록 조회 (goods 테이블, 등록용) - GET /api/v1/goods?q
     public List<GoodsSimpleResponse> getGoodsForRegistration(String q) {
@@ -65,5 +70,25 @@ public class GoodsService {
                 .animationTitle(goods.getAnimation().getTitle())
                 .stores(stores)
                 .build();
+    }
+
+    @Transactional(readOnly = false)
+    public GoodsResponse createGoods(CreateGoodsRequest request) {
+        // 중복된 이름의 굿즈가 있는지 확인
+        if(goodsRepository.existsByName(request.name())) {
+            throw new IllegalArgumentException("이미 존재하는 상품입니다.");
+        }
+
+        // 애니메이션이 존재하는지 확인
+        Animation animation = animationRepository.findById(request.animationId())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 애니메이션입니다."));
+
+        // Goods 엔티티 추가
+        Goods goods = Goods.builder()
+                .name(request.name())
+                .animation(animation)
+                .build();
+
+        return GoodsResponse.from(goodsRepository.save(goods));
     }
 }
