@@ -3,6 +3,7 @@ package team2.goodsmap.global.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -39,6 +40,17 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**"
+                        ).permitAll()
+                        // 재고 도메인 - 조회(GET)는 로그인 없이도 열람 가능해야 함
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1/region",
+                                "/api/v1/animations",
+                                "/api/v1/goods",
+                                "/api/v1/goods/search",
+                                "/api/v1/goods/*",
+                                "/api/v1/stores",
+                                "/api/v1/stores/map",
+                                "/api/v1/stores/*/goods"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

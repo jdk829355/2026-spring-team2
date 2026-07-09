@@ -1,226 +1,148 @@
 package team2.goodsmap.store.service;
 
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.ActiveProfiles;
-import team2.goodsmap.store.dto.request.AddStoreAdminRequest;
-import team2.goodsmap.store.dto.request.CreateStoreRequest;
-import team2.goodsmap.store.dto.response.StoreAdminResponse;
-import team2.goodsmap.store.dto.response.StoreResponse;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import team2.goodsmap.global.exception.NotFoundException;
+import team2.goodsmap.goods.entity.Animation;
+import team2.goodsmap.goods.entity.Goods;
+import team2.goodsmap.store.dto.StoreGoodsItemResponse;
+import team2.goodsmap.store.dto.StoreMapResponse;
+import team2.goodsmap.store.dto.StoreResponse;
+import team2.goodsmap.store.entity.Store;
+import team2.goodsmap.store.entity.StoreGoods;
 import team2.goodsmap.store.enums.StoreType;
-import team2.goodsmap.user.entity.User;
-import team2.goodsmap.user.enums.UserRole;
-import team2.goodsmap.user.repository.UserRepository;
+import team2.goodsmap.store.repository.StoreGoodsRepository;
+import team2.goodsmap.store.repository.StoreRepository;
+import team2.goodsmap.support.EntityTestFactory;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 
-@DataJpaTest
-@Import(StoreService.class)
-@ActiveProfiles("test")
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.BDDMockito.given;
+
+@ExtendWith(MockitoExtension.class)
 class StoreServiceTest {
 
-    @Autowired
+    @Mock
+    private StoreRepository storeRepository;
+
+    @Mock
+    private StoreGoodsRepository storeGoodsRepository;
+
+    @InjectMocks
     private StoreService storeService;
-    @Autowired
-    private UserRepository userRepository;
-
-    private User testUser;
-
-    @BeforeEach
-    void each(){
-        testUser = User.builder()
-                .email("test@example.com")
-                .password("password")
-                .role(UserRole.STORE)
-                .name("jung")
-                .build();
-
-        userRepository.save(testUser);
-    }
 
     @Test
-    void 업체_생성() {
-        CreateStoreRequest req = createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31));
-        storeService.createStore(req, testUser.getId());
-        List<StoreResponse> storeByUserId = storeService.getStoreByUserId(testUser.getId());
-
-        Assertions.assertThat(storeByUserId).hasSize(1);
-        Assertions.assertThat(storeByUserId.getFirst().name()).isEqualTo("애니메이트");
-        Assertions.assertThat(storeByUserId.getFirst().description()).isEqualTo("다 있어요");
-        Assertions.assertThat(storeByUserId.getFirst().type()).isEqualTo(StoreType.POPUP);
-        Assertions.assertThat(storeByUserId.getFirst().startDate()).isEqualTo(LocalDate.of(2023, 1, 1));
-        Assertions.assertThat(storeByUserId.getFirst().endDate()).isEqualTo(LocalDate.of(2023, 12, 31));
-        Assertions.assertThat(storeByUserId.getFirst().address()).isEqualTo("서울특별시 마포구 양화로 188");
-        Assertions.assertThat(storeByUserId.getFirst().lat()).isEqualByComparingTo(BigDecimal.valueOf(37.557743));
-        Assertions.assertThat(storeByUserId.getFirst().lng()).isEqualByComparingTo(BigDecimal.valueOf(126.926487));
-    }
-
-    @Test
-    void 관리_업체가_없으면_빈_배열을_반환한다() {
-        List<StoreResponse> storeByUserId = storeService.getStoreByUserId(testUser.getId());
-
-        Assertions.assertThat(storeByUserId).isEmpty();
-    }
-
-    @Test
-    void 시작일이_종료일보다_늦으면_예외가_발생한다() {
-        CreateStoreRequest req = createStoreRequest(LocalDate.of(2023, 12, 31), LocalDate.of(2023, 1, 1));
-
-        Assertions.assertThatThrownBy(() -> storeService.createStore(req, testUser.getId()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("시작일은 종료일보다 늦을 수 없습니다.");
-    }
-
-    @Test
-    void 업체에_관리자_추가_및_조회(){
-        User testUser2 = User.builder()
-                .email("test2@example.com")
-                .password("password")
-                .role(UserRole.USER)
-                .name("jung2")
-                .build();
-
-        userRepository.save(testUser2);
-
-        StoreResponse storeResponse = storeService.createStore(createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)), testUser.getId());
-
-        // 관리자 추가
-        StoreAdminResponse response = storeService.createStoreAdmin(new AddStoreAdminRequest(testUser2.getEmail()), storeResponse.id());
-
-        // 관리자 조회
-        // 관리자가 두 명인지, 그 두 명이 testUser, testUser2인지 확인
-        List<StoreAdminResponse> admins = storeService.getStoreAdmin(storeResponse.id());
-        Assertions.assertThat(admins).hasSize(2);
-        Assertions.assertThat(admins).extracting(StoreAdminResponse::userId).containsExactlyInAnyOrder(testUser.getId(), testUser2.getId());
-    }
-
-    @Test
-    void 관리자_삭제_성공() {
-        // given: USER role 관리자 추가
-        User userAdmin = User.builder()
-                .email("admin@example.com")
-                .password("password")
-                .role(UserRole.USER)
-                .name("admin-user")
-                .build();
-        userRepository.save(userAdmin);
-
-        StoreResponse store = storeService.createStore(
-                createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)),
-                testUser.getId());
-
-        StoreAdminResponse addedAdmin = storeService.createStoreAdmin(
-                new AddStoreAdminRequest(userAdmin.getEmail()), store.id());
-
-        // when: STORE role 소유자가 USER role 관리자 삭제
-        storeService.deleteStoreAdmin(testUser.getId(), store.id(), addedAdmin.id());
-
-        // then: 관리자 목록에서 삭제된 관리자가 제외됨
-        List<StoreAdminResponse> admins = storeService.getStoreAdmin(store.id());
-        Assertions.assertThat(admins).hasSize(1);
-        Assertions.assertThat(admins.getFirst().userId()).isEqualTo(testUser.getId());
-    }
-
-    @Test
-    void 관리자_삭제_요청자_STORE_role_아니면_예외() {
+    @DisplayName("작품/지역/키워드로 스토어 목록을 조회한다")
+    void getStores_필터조회() {
         // given
-        User userRoleUser = User.builder()
-                .email("user@example.com")
-                .password("password")
-                .role(UserRole.USER)
-                .name("regular-user")
-                .build();
-        userRepository.save(userRoleUser);
+        Store store = EntityTestFactory.store(7L, "강남점", StoreType.POPUP, "서울특별시 강남구",
+                BigDecimal.valueOf(37.5), BigDecimal.valueOf(127.0));
+        given(storeRepository.searchStores(5L, "서울", null)).willReturn(List.of(store));
 
-        StoreResponse store = storeService.createStore(
-                createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)),
-                testUser.getId());
+        // when
+        List<StoreResponse> result = storeService.getStores(5L, "서울", null);
 
-        // when & then: USER role 사용자가 삭제 시도하면 예외
-        Assertions.assertThatThrownBy(() ->
-                        storeService.deleteStoreAdmin(userRoleUser.getId(), store.id(), 999L))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("관리 권한이 없습니다.");
+        // then
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getName()).isEqualTo("강남점");
+        assertThat(result.get(0).getType()).isEqualTo("POPUP");
     }
 
     @Test
-    void 관리자_삭제_대상이_존재하지_않으면_예외() {
+    @DisplayName("지도 조회 시 반경 밖의 매장은 결과에서 제외된다")
+    void getStoresForMap_반경필터() {
+        // given: 서울시청 좌표 기준으로 근처(강남)와 먼 곳(부산)
+        Store near = EntityTestFactory.store(1L, "근처매장", StoreType.POPUP, "서울특별시",
+                BigDecimal.valueOf(37.5665), BigDecimal.valueOf(126.9780));
+        Store far = EntityTestFactory.store(2L, "먼매장", StoreType.STORE, "부산광역시",
+                BigDecimal.valueOf(35.1796), BigDecimal.valueOf(129.0756));
+
+        given(storeRepository.findAllForMap(null, null)).willReturn(List.of(near, far));
+
+        // when: 반경 5km로 조회
+        List<StoreMapResponse> result = storeService.getStoresForMap(
+                37.5665, 126.9780, 5000.0, null, null);
+
+        // then
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getName()).isEqualTo("근처매장");
+    }
+
+    @Test
+    @DisplayName("지도 조회 시 결과는 거리순으로 정렬된다")
+    void getStoresForMap_거리순정렬() {
         // given
-        StoreResponse store = storeService.createStore(
-                createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)),
-                testUser.getId());
+        Store far = EntityTestFactory.store(1L, "먼곳", StoreType.POPUP, "서울특별시",
+                BigDecimal.valueOf(37.6000), BigDecimal.valueOf(127.0000));
+        Store near = EntityTestFactory.store(2L, "가까운곳", StoreType.POPUP, "서울특별시",
+                BigDecimal.valueOf(37.5665), BigDecimal.valueOf(126.9780));
 
-        // when & then: 존재하지 않는 storeAdminId로 삭제 시도
-        Assertions.assertThatThrownBy(() ->
-                        storeService.deleteStoreAdmin(testUser.getId(), store.id(), 9999L))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("해당하는 관리자가 없습니다.");
+        given(storeRepository.findAllForMap(null, null)).willReturn(List.of(far, near));
+
+        // when
+        List<StoreMapResponse> result = storeService.getStoresForMap(
+                37.5665, 126.9780, 50000.0, null, null);
+
+        // then
+        assertThat(result).extracting(StoreMapResponse::getName)
+                .containsExactly("가까운곳", "먼곳");
     }
 
     @Test
-    void 관리자_삭제_대상이_USER_role_아니면_예외() {
-        // given: STORE role 사용자를 추가 관리자로 등록
-        User anotherStoreOwner = User.builder()
-                .email("another-store@example.com")
-                .password("password")
-                .role(UserRole.STORE)
-                .name("another-store-owner")
-                .build();
-        userRepository.save(anotherStoreOwner);
+    @DisplayName("radius를 지정하지 않으면 기본 반경(3km)으로 필터링된다")
+    void getStoresForMap_기본반경() {
+        // given
+        Store within = EntityTestFactory.store(1L, "3km이내", StoreType.POPUP, "서울특별시",
+                BigDecimal.valueOf(37.5665), BigDecimal.valueOf(126.9780));
 
-        StoreResponse store = storeService.createStore(
-                createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)),
-                testUser.getId());
+        given(storeRepository.findAllForMap(null, null)).willReturn(List.of(within));
 
-        StoreAdminResponse storeRoleAdmin = storeService.createStoreAdmin(
-                new AddStoreAdminRequest(anotherStoreOwner.getEmail()), store.id());
+        // when: radius = null
+        List<StoreMapResponse> result = storeService.getStoresForMap(
+                37.5665, 126.9780, null, null, null);
 
-        // when & then: STORE role 관리자는 삭제 대상이 아니므로 예외
-        Assertions.assertThatThrownBy(() ->
-                        storeService.deleteStoreAdmin(testUser.getId(), store.id(), storeRoleAdmin.id()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("해당 사용자는 삭제 대상이 아닙니다.");
+        // then
+        assertThat(result).hasSize(1);
     }
 
     @Test
-    void 관리자_삭제_요청자가_해당_업체_관리자_아니면_예외() {
-        // given: 별도 STORE role 사용자 생성 (다른 store의 owner)
-        User otherStoreOwner = User.builder()
-                .email("other-owner@example.com")
-                .password("password")
-                .role(UserRole.STORE)
-                .name("other-owner")
-                .build();
-        userRepository.save(otherStoreOwner);
+    @DisplayName("존재하지 않는 스토어의 재고를 조회하면 NotFoundException이 발생한다")
+    void getStoreGoods_존재하지않으면_예외() {
+        // given
+        given(storeRepository.existsById(999L)).willReturn(false);
 
-        StoreResponse store = storeService.createStore(
-                createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)),
-                testUser.getId());
-
-        // when & then: 다른 store의 소유자가 삭제 시도하면 예외
-        Assertions.assertThatThrownBy(() ->
-                        storeService.deleteStoreAdmin(otherStoreOwner.getId(), store.id(), 999L))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("해당 업체의 관리 권한이 없습니다.");
+        // when & then
+        assertThatThrownBy(() -> storeService.getStoreGoods(999L))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("999");
     }
 
-    private CreateStoreRequest createStoreRequest(LocalDate startDate, LocalDate endDate) {
-        return new CreateStoreRequest(
-                "애니메이트",
-                "다 있어요",
-                StoreType.POPUP,
-                startDate,
-                endDate,
-                "서울특별시 마포구 양화로 188",
-                BigDecimal.valueOf(37.557743),
-                BigDecimal.valueOf(126.926487)
-        );
-    }
+    @Test
+    @DisplayName("매장별 전체 재고 목록을 조회한다")
+    void getStoreGoods_성공() {
+        // given
+        Animation animation = EntityTestFactory.animation(5L, "산리오 캐릭터즈");
+        Goods goods = EntityTestFactory.goods(12L, "마이멜로디 텀블러", animation);
+        Store store = EntityTestFactory.store(7L, "강남점", StoreType.POPUP, "서울특별시",
+                BigDecimal.valueOf(37.5), BigDecimal.valueOf(127.0));
+        StoreGoods storeGoods = EntityTestFactory.storeGoods(58L, 15000, 30, "img.png", goods, store);
 
+        given(storeRepository.existsById(7L)).willReturn(true);
+        given(storeGoodsRepository.findByStoreId(7L)).willReturn(List.of(storeGoods));
+
+        // when
+        List<StoreGoodsItemResponse> result = storeService.getStoreGoods(7L);
+
+        // then
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getGoodsName()).isEqualTo("마이멜로디 텀블러");
+        assertThat(result.get(0).getPrice()).isEqualTo(15000);
+    }
 }

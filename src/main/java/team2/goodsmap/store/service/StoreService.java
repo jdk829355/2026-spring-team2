@@ -3,27 +3,39 @@ package team2.goodsmap.store.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import team2.goodsmap.global.exception.NotFoundException;
+import team2.goodsmap.global.util.GeoUtils;
 import team2.goodsmap.store.dto.request.AddStoreAdminRequest;
 import team2.goodsmap.store.dto.request.CreateStoreRequest;
 import team2.goodsmap.store.dto.response.StoreAdminResponse;
+import team2.goodsmap.store.dto.response.StoreGoodsItemResponse;
+import team2.goodsmap.store.dto.response.StoreMapResponse;
 import team2.goodsmap.store.dto.response.StoreResponse;
 import team2.goodsmap.store.entity.Store;
 import team2.goodsmap.store.entity.StoreAdmin;
 import team2.goodsmap.store.repository.StoreAdminRepository;
+import team2.goodsmap.store.repository.StoreGoodsRepository;
 import team2.goodsmap.store.repository.StoreRepository;
 import team2.goodsmap.user.entity.User;
 import team2.goodsmap.user.enums.UserRole;
 import team2.goodsmap.user.repository.UserRepository;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class StoreService {
+
+    //radius 파라미터 없을 때 기본 반경 (m)
+    private static final double DEFAULT_RADIUS_METERS = 3_000.0;
+
     private final StoreRepository storeRepository;
     private final StoreAdminRepository storeAdminRepository;
     private final UserRepository userRepository;
+    private final StoreGoodsRepository storeGoodsRepository;  //
+
 
     public StoreResponse createStore(CreateStoreRequest request, Long userId) {
         validateCreateStoreRequest(request);
@@ -83,7 +95,6 @@ public class StoreService {
         return StoreAdminResponse.from(storeAdmin);
     }
 
-
     public List<StoreAdminResponse> getStoreAdmin(Long storeId) {
         Store store = storeRepository.findById(storeId).orElseThrow(
                 () -> new IllegalArgumentException("업체가 없습니다.")
@@ -95,7 +106,6 @@ public class StoreService {
     }
 
     public void deleteStoreAdmin(Long userId, Long storeId, Long storeAdminId) {
-        // userId에 해당하는 유저는 삭제하는 유저 (storeAdmin에 속해있으면서 role이 STORE여야함)
         User actor = userRepository.findById(userId).orElseThrow(
                 () -> new IllegalArgumentException("사용자가 없습니다.")
         );
@@ -108,12 +118,10 @@ public class StoreService {
                 () -> new IllegalArgumentException("업체가 없습니다.")
         );
 
-        // 삭제 요청자가 해당 store의 관리자인지 확인
         if (!storeAdminRepository.existsByUserAndStore(actor, store)) {
             throw new IllegalArgumentException("해당 업체의 관리 권한이 없습니다.");
         }
 
-        // storeAdminId에 해당하는 유저는 USER role이면서 storeAdmin에 속해있어야함.
         StoreAdmin target = storeAdminRepository.findByIdAndStore(storeAdminId, store).orElseThrow(
                 () -> new IllegalArgumentException("해당하는 관리자가 없습니다.")
         );
@@ -125,4 +133,44 @@ public class StoreService {
         storeAdminRepository.delete(target);
     }
 
+    // 재고 조회(Public) 3개 메서드
+
+    // 스토어 목록 조회 - GET /api/v1/stores
+    public List<StoreResponse> getStores(Long animationId, String region, String keyword) {
+        return storeRepository.searchStores(animationId, region, keyword).stream()
+                .map(StoreResponse::from)
+                .toList();
+    }
+
+    // 스토어 목록 조회(지도용) - GET /api/v1/stores/map
+    public List<StoreMapResponse> getStoresForMap(double lat, double lng, Double radius,
+                                                   Long animationId, String region) {
+        double searchRadius = (radius == null) ? DEFAULT_RADIUS_METERS : radius;
+
+        return storeRepository.findAllForMap(animationId, region).stream()
+                .filter(store -> store.getLat() != null && store.getLng() != null)
+                .map(store -> {
+                    double distance = GeoUtils.distanceMeters(lat, lng, store.getLat(), store.getLng());
+                    return new StoreMapResponse(
+                            store.getId(), store.getName(), store.getType(), store.getAddress(),
+                            store.getLat(), store.getLng(), store.getStartDate(), store.getEndDate(),
+                            distance);
+                })
+                .filter(r -> r.distance() <= searchRadius)
+                .sorted(Comparator.comparingDouble(StoreMapResponse::distance))
+                .toList();
+    }
+
+    // 매장별 전체 재고 목록 조회 - GET /api/v1/stores/{storeId}/goods
+    public List<StoreGoodsItemResponse> getStoreGoods(Long storeId) {
+        if (!storeRepository.existsById(storeId)) {
+            throw new NotFoundException("존재하지 않는 스토어입니다. id=" + storeId);
+        }
+
+        return storeGoodsRepository.findByStoreId(storeId).stream()
+                .map(sg -> new StoreGoodsItemResponse(
+                        sg.getId(), sg.getGoods().getId(), sg.getGoods().getName(),
+                        sg.getGoods().getAnimation().getTitle(), sg.getPrice(), sg.getStock(), sg.getImagePath()))
+                .toList();
+    }
 }

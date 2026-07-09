@@ -5,6 +5,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import team2.goodsmap.user.entity.User;
+import lombok.Builder;
 
 import java.time.LocalDate;
 
@@ -27,4 +28,11 @@ public class Planner {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    @Builder //'내가 살 것 담기'에서 추가 시 사용해야
+    public Planner(String title, LocalDate date, User user) {
+        this.title = title;
+        this.date = date;
+        this.user = user;
+    }
 }
