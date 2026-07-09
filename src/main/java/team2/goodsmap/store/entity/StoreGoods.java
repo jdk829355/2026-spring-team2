@@ -4,10 +4,15 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import team2.goodsmap.goods.entity.Goods;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "store_goods")
+@EntityListeners(AuditingEntityListener.class)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class StoreGoods {
@@ -32,4 +37,8 @@ public class StoreGoods {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
+
+    @CreatedDate
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
 }
