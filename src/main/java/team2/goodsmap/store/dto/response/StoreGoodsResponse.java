@@ -1,12 +1,12 @@
 package team2.goodsmap.store.dto.response;
 
+import team2.goodsmap.goods.dto.GoodsResponse;
 import team2.goodsmap.store.entity.StoreGoods;
 
 public record StoreGoodsResponse(
         Long id,
         Long storeId,
-        Long goodsId,
-        String goodsName,
+        GoodsResponse goodsInfo,
         int price,
         int stock,
         String imagePath
@@ -15,8 +15,7 @@ public record StoreGoodsResponse(
         return new StoreGoodsResponse(
                 storeGoods.getId(),
                 storeGoods.getStore().getId(),
-                storeGoods.getGoods().getId(),
-                storeGoods.getGoods().getName(),
+                GoodsResponse.from(storeGoods.getGoods()),
                 storeGoods.getPrice(),
                 storeGoods.getStock(),
                 storeGoods.getImagePath()

@@ -7,11 +7,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.util.ReflectionTestUtils;
+import team2.goodsmap.goods.dto.GoodsResponse;
+import team2.goodsmap.goods.entity.Animation;
+import team2.goodsmap.goods.entity.Goods;
+import team2.goodsmap.goods.repository.AnimationRepository;
+import team2.goodsmap.goods.repository.GoodsRepository;
+import team2.goodsmap.store.dto.request.AddExistingStoreGoodsRequest;
+import team2.goodsmap.store.dto.request.AddNewStoreGoodsRequest;
 import team2.goodsmap.store.dto.request.AddStoreAdminRequest;
 import team2.goodsmap.store.dto.request.CreateStoreRequest;
 import team2.goodsmap.store.dto.response.StoreAdminResponse;
+import team2.goodsmap.store.dto.response.StoreGoodsResponse;
 import team2.goodsmap.store.dto.response.StoreResponse;
 import team2.goodsmap.store.enums.StoreType;
+import team2.goodsmap.store.repository.StoreGoodsRepository;
 import team2.goodsmap.user.entity.User;
 import team2.goodsmap.user.enums.UserRole;
 import team2.goodsmap.user.repository.UserRepository;
@@ -29,6 +39,12 @@ class StoreServiceTest {
     private StoreService storeService;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private AnimationRepository animationRepository;
+    @Autowired
+    private GoodsRepository goodsRepository;
+    @Autowired
+    private StoreGoodsRepository storeGoodsRepository;
 
     private User testUser;
 
@@ -210,6 +226,66 @@ class StoreServiceTest {
                 .hasMessage("해당 업체의 관리 권한이 없습니다.");
     }
 
+    @Test
+    void 새상품으로_storeGoods를_생성한다() {
+        StoreResponse store = storeService.createStore(
+                createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)),
+                testUser.getId());
+        Animation animation = animationRepository.save(animation("하이큐"));
+        Goods goods = goodsRepository.save(Goods.builder()
+                .name("아크릴 스탠드")
+                .animation(animation)
+                .build());
+
+        AddNewStoreGoodsRequest request = new AddNewStoreGoodsRequest(
+                null,
+                15000,
+                30,
+                "https://example.com/new.png"
+        );
+        GoodsResponse goodsResponse = new GoodsResponse(
+                goods.getId(),
+                goods.getName(),
+                animation.getId(),
+                animation.getTitle()
+        );
+
+        StoreGoodsResponse response = storeService.createStoreGoods(request, goodsResponse, testUser.getId(), store.id());
+
+        Assertions.assertThat(response.storeId()).isEqualTo(store.id());
+        Assertions.assertThat(response.goodsInfo().id()).isEqualTo(goods.getId());
+        Assertions.assertThat(response.price()).isEqualTo(15000);
+        Assertions.assertThat(response.stock()).isEqualTo(30);
+        Assertions.assertThat(storeGoodsRepository.findByStoreId(store.id())).hasSize(1);
+    }
+
+    @Test
+    void 기존상품으로_storeGoods를_생성한다() {
+        StoreResponse store = storeService.createStore(
+                createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)),
+                testUser.getId());
+        Animation animation = animationRepository.save(animation("슬램덩크"));
+        Goods goods = goodsRepository.save(Goods.builder()
+                .name("포토카드")
+                .animation(animation)
+                .build());
+
+        AddExistingStoreGoodsRequest request = new AddExistingStoreGoodsRequest(
+                goods.getId(),
+                5000,
+                12,
+                "https://example.com/existing.png"
+        );
+
+        StoreGoodsResponse response = storeService.createStoreGoods(request, testUser.getId(), store.id());
+
+        Assertions.assertThat(response.storeId()).isEqualTo(store.id());
+        Assertions.assertThat(response.goodsInfo().id()).isEqualTo(goods.getId());
+        Assertions.assertThat(response.price()).isEqualTo(5000);
+        Assertions.assertThat(response.stock()).isEqualTo(12);
+        Assertions.assertThat(storeGoodsRepository.findByStoreId(store.id())).hasSize(1);
+    }
+
     private CreateStoreRequest createStoreRequest(LocalDate startDate, LocalDate endDate) {
         return new CreateStoreRequest(
                 "애니메이트",
@@ -221,6 +297,22 @@ class StoreServiceTest {
                 BigDecimal.valueOf(37.557743),
                 BigDecimal.valueOf(126.926487)
         );
+    }
+
+    private Animation animation(String title) {
+        Animation animation = newInstance(Animation.class);
+        ReflectionTestUtils.setField(animation, "title", title);
+        return animation;
+    }
+
+    private static <T> T newInstance(Class<T> clazz) {
+        try {
+            var constructor = clazz.getDeclaredConstructor();
+            constructor.setAccessible(true);
+            return constructor.newInstance();
+        } catch (Exception e) {
+            throw new RuntimeException("테스트용 엔티티 생성 실패: " + clazz.getSimpleName(), e);
+        }
     }
 
 }
