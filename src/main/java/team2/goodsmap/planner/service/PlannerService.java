@@ -1,11 +1,12 @@
 package team2.goodsmap.planner.service;
 
 import lombok.RequiredArgsConstructor;
-import team2.goodsmap.global.exception.BadRequestException;
+// import team2.goodsmap.global.exception.BadRequestException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import team2.goodsmap.global.exception.NotFoundException;
 import team2.goodsmap.planner.dto.request.PlannerCreateRequest;
+import team2.goodsmap.planner.dto.request.PlannerUpdateRequest;
 import team2.goodsmap.planner.dto.response.PlannerListResponse;
 import team2.goodsmap.planner.dto.response.PlannerResponse;
 import team2.goodsmap.planner.entity.Planner;
@@ -51,7 +52,7 @@ public class PlannerService {
     }
 
 
-    // 메서드 추가
+    // 내 플래너 조회
     @Transactional(readOnly = true)
     public PlannerListResponse getMyPlanners(Long userId, String month) {
         // month 없으면 이번 달
@@ -88,7 +89,7 @@ public class PlannerService {
                 .planners(summaries)
                 .build();
     }
-
+    //플래너 상세조회
     @Transactional(readOnly = true)
     public PlannerDetailResponse getPlannerDetail(Long userId, Long plannerId) {
         // 1. 플래너 조회 (없으면 404)
@@ -97,7 +98,8 @@ public class PlannerService {
 
         // 2. 본인 플래너인지 검증 (아니면 403)
         if (!planner.getUser().getId().equals(userId)) {
-            throw new BadRequestException("본인의 플래너만 조회할 수 있습니다.");
+            //이거 일단 main에 BadRequestException이 없어서 임시로.
+            throw new IllegalArgumentException("본인의 플래너만 조회할 수 있습니다.");
         }
 
         // 3. 담긴 굿즈 목록 조회 + 굿즈/스토어 정보 조인
@@ -132,5 +134,55 @@ public class PlannerService {
                 .date(planner.getDate())
                 .goods(goods)
                 .build();
+    }
+    //플래너 수정
+    @Transactional
+    public PlannerResponse updatePlanner(Long userId, Long plannerId, PlannerUpdateRequest request) {
+        Planner planner = plannerRepository.findById(plannerId)
+                .orElseThrow(() -> new NotFoundException("플래너를 찾을 수 없습니다."));
+
+        // 본인 플래너 검증
+        if (!planner.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("본인의 플래너만 수정할 수 있습니다.");
+        }
+
+        // 전달된 필드만 수정
+        planner.update(request.getTitle(), request.getDate());
+
+        return PlannerResponse.from(planner);
+    }
+
+    //플래너 삭제
+    @Transactional
+    public void deletePlanner(Long userId, Long plannerId) {
+        Planner planner = plannerRepository.findById(plannerId)
+                .orElseThrow(() -> new NotFoundException("플래너를 찾을 수 없습니다."));
+
+        // 본인 플래너 검증
+        if (!planner.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("본인의 플래너만 삭제할 수 있습니다.");
+        }
+
+        plannerRepository.delete(planner);
+    }
+
+    //내가 살 것 담기 : 취소(굿즈빼기)
+    @Transactional
+    public void removeGoods(Long userId, Long plannerId, Long plannerGoodsId) {
+        // 1. 플래너 조회 + 본인 것 검증
+        Planner planner = plannerRepository.findById(plannerId)
+                .orElseThrow(() -> new NotFoundException("플래너를 찾을 수 없습니다."));
+
+        if (!planner.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("본인의 플래너만 수정할 수 있습니다.");
+        }
+
+        // 2. 그 플래너에 담긴 굿즈가 맞는지 확인
+        if (!plannerGoodsRepository.existsByIdAndPlannerId(plannerGoodsId, plannerId)) {
+            throw new NotFoundException("해당 플래너에 담긴 굿즈를 찾을 수 없습니다.");
+        }
+
+        // 3. 삭제
+        plannerGoodsRepository.deleteById(plannerGoodsId);
     }
 }

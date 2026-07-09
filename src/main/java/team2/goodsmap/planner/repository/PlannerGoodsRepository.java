@@ -11,4 +11,7 @@ public interface PlannerGoodsRepository extends JpaRepository<PlannerGoods, Long
 
     // 특정 플래너에 담긴 굿즈 목록 (추가)
     List<PlannerGoods> findByPlannerId(Long plannerId);
+
+    // 특정 플래너에 속한 굿즈인지 확인용
+    boolean existsByIdAndPlannerId(Long id, Long plannerId);
 }
