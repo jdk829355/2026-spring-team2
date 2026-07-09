@@ -14,6 +14,8 @@ import team2.goodsmap.store.entity.StoreGoods;
 import team2.goodsmap.store.repository.StoreGoodsRepository;
 import team2.goodsmap.user.entity.User;
 import team2.goodsmap.user.repository.UserRepository;
+import java.time.format.DateTimeParseException;
+import team2.goodsmap.global.exception.BadRequestException;
 
 import java.time.LocalDate;
 
@@ -29,6 +31,10 @@ public class PlannerGoodsService {
 
     // 내가 살 것 담기 - POST /api/v1/planner-goods
     public PlannerGoodsCreateResponse addPlannerGoods(Long userId, PlannerGoodsCreateRequest request) {
+
+        if (request.plannerId() == null && (request.date() == null || request.date().isBlank())) {
+            throw new BadRequestException("plannerId 또는 date 중 하나는 반드시 필요합니다.");
+        }
 
         // 1. 담을 재고(store_goods)가 실제 존재하는지 확인
         StoreGoods storeGoods = storeGoodsRepository.findById(request.storeGoodsId())
@@ -64,7 +70,12 @@ public class PlannerGoodsService {
     }
 
     private Planner findOrCreatePlanner(Long userId, String dateStr) {
-        LocalDate date = LocalDate.parse(dateStr);
+        LocalDate date;
+        try {
+            date = LocalDate.parse(dateStr);
+        } catch (DateTimeParseException e) {
+            throw new BadRequestException("date 형식이 올바르지 않습니다. (yyyy-MM-dd) 입력값: " + dateStr);
+        }
 
         return plannerRepository.findByUser_IdAndDate(userId, date)
                 .orElseGet(() -> {

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import team2.goodsmap.global.common.ApiResponse;
 
 import java.util.List;
 
@@ -76,6 +77,22 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleNotFoundException(NotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ErrorResponse.of(HttpStatus.NOT_FOUND, e.getMessage()));
+    }
+
+    // @Valid 검증 실패 시 (예: storeGoodsId 누락)
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<?>> handleValidation(MethodArgumentNotValidException e) {
+        String message = e.getBindingResult().getFieldErrors().stream()
+                .findFirst()
+                .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
+                .orElse("잘못된 요청입니다.");
+        return ResponseEntity.badRequest().body(ApiResponse.fail(message));
+    }
+
+    // 우리가 직접 던지는 400 (plannerId/date 둘 다 없음, 날짜 형식 오류 등)
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ApiResponse<?>> handleBadRequest(BadRequestException e) {
+        return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
     }
 
 }

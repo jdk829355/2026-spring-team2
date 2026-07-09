@@ -1,5 +1,6 @@
 package team2.goodsmap.planner.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -26,7 +27,7 @@ public class PlannerGoodsController {
     @PostMapping
     public ResponseEntity<ApiResponse<?>> createPlannerGoods(
             @AuthenticationPrincipal Long userId,
-            @RequestBody PlannerGoodsCreateRequest requestDto
+            @Valid @RequestBody PlannerGoodsCreateRequest requestDto
     ) {
         PlannerGoodsCreateResponse response = plannerGoodsService.addPlannerGoods(userId, requestDto);
         return ResponseEntity.ok(ApiResponse.success(response));
