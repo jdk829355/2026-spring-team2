@@ -34,11 +34,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(StoreController.class)
+@WebMvcTest(AdminController.class)
 @Import({
         SecurityConfig.class
 })
-class StoreControllerTest {
+class AdminControllerTest {
 
     @Autowired
     private MockMvc mockMvc;

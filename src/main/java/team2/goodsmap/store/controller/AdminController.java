@@ -17,7 +17,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/stores")
 @RequiredArgsConstructor
-public class StoreController {
+public class AdminController {
     private final StoreService storeService;
 
     @GetMapping("/admin")
