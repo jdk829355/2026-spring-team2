@@ -91,11 +91,11 @@ class StoreServiceTest {
         StoreResponse storeResponse = storeService.createStore(createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)), testUser.getId());
 
         // 관리자 추가
-        StoreAdminResponse response = storeService.createStoreAdmin(new AddStoreAdminRequest(testUser2.getEmail()), storeResponse.id());
+        StoreAdminResponse response = storeService.createStoreAdmin(new AddStoreAdminRequest(testUser2.getEmail()), storeResponse.id(), testUser.getId());
 
         // 관리자 조회
         // 관리자가 두 명인지, 그 두 명이 testUser, testUser2인지 확인
-        List<StoreAdminResponse> admins = storeService.getStoreAdmin(storeResponse.id());
+        List<StoreAdminResponse> admins = storeService.getStoreAdmin(storeResponse.id(), testUser.getId());
         Assertions.assertThat(admins).hasSize(2);
         Assertions.assertThat(admins).extracting(StoreAdminResponse::userId).containsExactlyInAnyOrder(testUser.getId(), testUser2.getId());
     }
@@ -116,13 +116,13 @@ class StoreServiceTest {
                 testUser.getId());
 
         StoreAdminResponse addedAdmin = storeService.createStoreAdmin(
-                new AddStoreAdminRequest(userAdmin.getEmail()), store.id());
+                new AddStoreAdminRequest(userAdmin.getEmail()), store.id(), testUser.getId());
 
         // when: STORE role 소유자가 USER role 관리자 삭제
         storeService.deleteStoreAdmin(testUser.getId(), store.id(), addedAdmin.id());
 
         // then: 관리자 목록에서 삭제된 관리자가 제외됨
-        List<StoreAdminResponse> admins = storeService.getStoreAdmin(store.id());
+        List<StoreAdminResponse> admins = storeService.getStoreAdmin(store.id(), testUser.getId());
         Assertions.assertThat(admins).hasSize(1);
         Assertions.assertThat(admins.getFirst().userId()).isEqualTo(testUser.getId());
     }
@@ -179,7 +179,7 @@ class StoreServiceTest {
                 testUser.getId());
 
         StoreAdminResponse storeRoleAdmin = storeService.createStoreAdmin(
-                new AddStoreAdminRequest(anotherStoreOwner.getEmail()), store.id());
+                new AddStoreAdminRequest(anotherStoreOwner.getEmail()), store.id(), testUser.getId());
 
         // when & then: STORE role 관리자는 삭제 대상이 아니므로 예외
         Assertions.assertThatThrownBy(() ->

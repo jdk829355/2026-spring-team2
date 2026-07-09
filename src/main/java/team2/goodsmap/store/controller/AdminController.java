@@ -40,17 +40,19 @@ public class AdminController {
     @PostMapping("/{storeId}/admin")
     public ResponseEntity<ApiResponse<StoreAdminResponse>> createStoreAdmin(
             @PathVariable Long storeId,
-            @Valid @RequestBody AddStoreAdminRequest request
+            @Valid @RequestBody AddStoreAdminRequest request,
+            @AuthenticationPrincipal Long userId
     ){
-        StoreAdminResponse storeAdmin = storeService.createStoreAdmin(request, storeId);
+        StoreAdminResponse storeAdmin = storeService.createStoreAdmin(request, storeId, userId);
         return ResponseEntity.ok(ApiResponse.success(storeAdmin));
     }
 
     @GetMapping("/{storeId}/admin")
     public ResponseEntity<ApiResponse<List<StoreAdminResponse>>> getStoreAdmins(
+            @AuthenticationPrincipal Long userId,
             @PathVariable Long storeId
     ){
-        List<StoreAdminResponse> storeAdmins = storeService.getStoreAdmin(storeId);
+        List<StoreAdminResponse> storeAdmins = storeService.getStoreAdmin(storeId, userId);
         return ResponseEntity.ok(ApiResponse.success(storeAdmins));
     }
 

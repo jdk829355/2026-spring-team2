@@ -65,14 +65,30 @@ public class StoreService {
                 .toList();
     }
 
-    public StoreAdminResponse createStoreAdmin(AddStoreAdminRequest request, Long storeId){
+    public StoreAdminResponse createStoreAdmin(AddStoreAdminRequest request, Long storeId, Long userId){
+        // 대상 사용자가 있는지
         User user = userRepository.findUserByEmail(request.email()).orElseThrow(
                 () -> new IllegalArgumentException("사용자가 없습니다.")
         );
 
+        // 업체가 있는지
         Store store = storeRepository.findById(storeId).orElseThrow(
                 () -> new IllegalArgumentException("업체가 없습니다.")
         );
+
+        // 추가를 요청한 관리자가 존재하는지 확인
+        User adminUser = userRepository.findUserByIdAndRole(userId, UserRole.STORE).orElseThrow(
+                () -> new IllegalArgumentException("관리자가 없습니다.")
+        );
+
+        // 추가를 요청한 관리자가 해당 업체의 관리자인지 확인
+        if (!storeAdminRepository.existsByUserAndStore(adminUser, store)) {
+            throw new IllegalArgumentException("해당 업체의 관리자가 아닙니다.");
+        }
+
+        if(storeAdminRepository.existsByUserAndStore(user, store)) {
+            throw new IllegalArgumentException("이미 등록된 관리자입니다.");
+        }
 
         StoreAdmin storeAdmin = StoreAdmin.builder()
                 .user(user)
@@ -84,9 +100,20 @@ public class StoreService {
     }
 
 
-    public List<StoreAdminResponse> getStoreAdmin(Long storeId) {
+    public List<StoreAdminResponse> getStoreAdmin(Long storeId, Long userId) {
+        // 업체가 존재하는가?
         Store store = storeRepository.findById(storeId).orElseThrow(
                 () -> new IllegalArgumentException("업체가 없습니다.")
+        );
+
+        // 실제 사용자 맞나
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new IllegalArgumentException("사용자가 없습니다.")
+        );
+
+        // 조회하는 사람이 해당 업체의 관리자인가?
+        storeAdminRepository.findByStoreAndUser(store, user).orElseThrow(
+                () -> new IllegalArgumentException("해당 업체의 관리자가 아닙니다.")
         );
 
         return storeAdminRepository.findAllByStore(store).stream()

@@ -175,7 +175,7 @@ class AdminControllerTest {
         given(jwtTokenProvider.isAccessToken(token)).willReturn(true);
         given(jwtTokenProvider.getUserId(token)).willReturn(1L);
         given(jwtTokenProvider.getRole(token)).willReturn("STORE");
-        given(storeService.createStoreAdmin(any(AddStoreAdminRequest.class), anyLong())).willReturn(new StoreAdminResponse(1L, 1L, 1L, "test-user-name", "test2@example.com"));
+        given(storeService.createStoreAdmin(any(AddStoreAdminRequest.class), anyLong(), anyLong())).willReturn(new StoreAdminResponse(1L, 1L, 1L, "test-user-name", "test2@example.com"));
 
         mockMvc.perform(post("/api/v1/stores/1/admin")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -183,6 +183,8 @@ class AdminControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
+
+        verify(storeService).createStoreAdmin(any(AddStoreAdminRequest.class), eq(1L), eq(1L));
     }
 
     @Test
@@ -194,7 +196,7 @@ class AdminControllerTest {
         given(jwtTokenProvider.getUserId(token)).willReturn(1L);
         given(jwtTokenProvider.getRole(token)).willReturn("STORE");
 
-        given(storeService.getStoreAdmin(1L)).willReturn(List.of(new StoreAdminResponse(1L, 1L, 1L, "test-user-name", "test2@example.com")));
+        given(storeService.getStoreAdmin(1L, 1L)).willReturn(List.of(new StoreAdminResponse(1L, 1L, 1L, "test-user-name", "test2@example.com")));
 
         mockMvc.perform(get("/api/v1/stores/1/admin")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -213,7 +215,7 @@ class AdminControllerTest {
         given(jwtTokenProvider.getUserId(token)).willReturn(1L);
         given(jwtTokenProvider.getRole(token)).willReturn("STORE");
 
-        given(storeService.createStoreAdmin(any(AddStoreAdminRequest.class), anyLong())).willReturn(new StoreAdminResponse(1L, 1L, 1L, "test-user-name", "test2@example.com"));
+        given(storeService.createStoreAdmin(any(AddStoreAdminRequest.class), anyLong(), anyLong())).willReturn(new StoreAdminResponse(1L, 1L, 1L, "test-user-name", "test2@example.com"));
 
         mockMvc.perform(post("/api/v1/stores/1/admin")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
