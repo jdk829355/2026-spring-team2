@@ -9,6 +9,13 @@ import java.util.List;
 
 public interface StoreRepository extends JpaRepository<Store, Long> {
 
+    @Query("""
+        select s
+        from Store s
+        join StoreAdmin sa on sa.store = s
+        where sa.user.id = :userId
+    """)
+    List<Store> findAllByAdminUserId(@Param("userId") Long userId);
     // 스토어 목록 조회 - 작품/지역/키워드 필터링
     @Query("""
         SELECT DISTINCT s FROM Store s
