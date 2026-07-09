@@ -24,7 +24,7 @@ public class AnimationController {
      * GET /api/v1/animations?keyword=
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<?>> getAnimations(
+    public ResponseEntity<ApiResponse<GoodsResultResponse>> getAnimations(
             @RequestParam(required = false) String keyword
     ) {
         List<AnimationResponse> result = animationService.getAnimations(keyword);
