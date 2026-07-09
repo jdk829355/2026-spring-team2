@@ -16,4 +16,33 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
         where sa.user.id = :userId
     """)
     List<Store> findAllByAdminUserId(@Param("userId") Long userId);
+    // 스토어 목록 조회 - 작품/지역/키워드 필터링
+    @Query("""
+        SELECT DISTINCT s FROM Store s
+        WHERE (:region IS NULL OR s.address LIKE CONCAT('%', :region, '%'))
+          AND (:keyword IS NULL OR LOWER(s.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
+          AND (:animationId IS NULL OR s.id IN (
+                SELECT sg.store.id FROM StoreGoods sg
+                WHERE sg.goods.animation.id = :animationId
+          ))
+        """)
+    List<Store> searchStores(@Param("animationId") Long animationId,
+                             @Param("region") String region,
+                             @Param("keyword") String keyword);
+
+    // 스토어 목록 조회 (지도용) - 반경 필터는 서비스단에서 처리, 여기선 작품/지역만 1차 필터
+    @Query("""
+        SELECT s FROM Store s
+        WHERE (:region IS NULL OR s.address LIKE CONCAT('%', :region, '%'))
+          AND (:animationId IS NULL OR s.id IN (
+                SELECT sg.store.id FROM StoreGoods sg
+                WHERE sg.goods.animation.id = :animationId
+          ))
+        """)
+    List<Store> findAllForMap(@Param("animationId") Long animationId,
+                              @Param("region") String region);
+
+    // 지역 탭 목록 조회용 - 전체 주소 원본
+    @Query("SELECT DISTINCT s.address FROM Store s")
+    List<String> findAllAddresses();
 }
