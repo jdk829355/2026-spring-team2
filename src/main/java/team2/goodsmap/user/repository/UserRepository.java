@@ -21,4 +21,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findAllByIsVerifiedFalseAndCreatedAtBefore(LocalDateTime dateTime);
 
     void deleteByIsVerifiedFalseAndAuthCodeExpiredAtBefore(LocalDateTime time);
+
+    Optional<User> findUserByIdAndRole(Long id, UserRole role);
+
+    boolean existsByIdAndRole(Long userId, UserRole userRole);
 }
