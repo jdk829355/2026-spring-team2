@@ -2,6 +2,7 @@ package team2.goodsmap.goods.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -21,4 +22,10 @@ public class Goods {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "animation_id", nullable = false)
     private Animation animation;
+
+    @Builder
+    public Goods(String name, Animation animation) {
+        this.name = name;
+        this.animation = animation;
+    }
 }
