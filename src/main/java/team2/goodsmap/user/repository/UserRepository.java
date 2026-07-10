@@ -19,4 +19,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     // 미인증 계정 배치 삭제용 (is_verified=false + 생성시간 기준)
     List<User> findAllByIsVerifiedFalseAndCreatedAtBefore(LocalDateTime dateTime);
+
+    void deleteByIsVerifiedFalseAndAuthCodeExpiredAtBefore(LocalDateTime time);
 }

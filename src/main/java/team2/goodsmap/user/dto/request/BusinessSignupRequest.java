@@ -8,7 +8,4 @@ public class BusinessSignupRequest {
     private String name;        // 업체명
     private String email;
     private String password;
-    private StoreType storeType;
-    private String address;
-    private String description; // 선택사항
 }

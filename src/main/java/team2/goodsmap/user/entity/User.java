@@ -6,12 +6,14 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import team2.goodsmap.user.enums.UserRole;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
+@EntityListeners(AuditingEntityListener.class)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
@@ -40,6 +42,12 @@ public class User {
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
+    @Column
+    private String authCode;
+
+    @Column
+    private LocalDateTime authCodeExpiredAt;
+
     @Builder
     public User(String name, String email, String password, UserRole role) {
         this.name = name;
@@ -49,7 +57,14 @@ public class User {
         this.isVerified = false;
     }
 
+    public void setAuthCode(String authCode, LocalDateTime expiredAt) {
+        this.authCode = authCode;
+        this.authCodeExpiredAt = expiredAt;
+    }
+
     public void verify() {
         this.isVerified = true;
+        this.authCode = null;
+        this.authCodeExpiredAt = null;
     }
 }
