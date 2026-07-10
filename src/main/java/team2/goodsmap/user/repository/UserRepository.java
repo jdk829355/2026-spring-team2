@@ -17,12 +17,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // 이메일 + role로 조회 (개인/업체 로그인 분기)
     Optional<User> findByEmailAndRole(String email, UserRole role);
 
-    // 미인증 계정 배치 삭제용 (is_verified=false + 생성시간 기준)
-    List<User> findAllByIsVerifiedFalseAndCreatedAtBefore(LocalDateTime dateTime);
+    Optional<User> findUserByIdAndRole(Long id, UserRole role);
 
     void deleteByIsVerifiedFalseAndAuthCodeExpiredAtBefore(LocalDateTime time);
-
-    Optional<User> findUserByIdAndRole(Long id, UserRole role);
 
     boolean existsByIdAndRole(Long userId, UserRole userRole);
 }
