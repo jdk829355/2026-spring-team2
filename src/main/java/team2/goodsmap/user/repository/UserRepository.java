@@ -13,6 +13,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByEmail(String email);
 
     Optional<User> findByEmail(String email);
+    Optional<User> findUserByEmail(String email);
 
     // 이메일 + role로 조회 (개인/업체 로그인 분기)
     Optional<User> findByEmailAndRole(String email, UserRole role);
