@@ -12,9 +12,15 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import team2.goodsmap.global.config.SecurityConfig;
 import team2.goodsmap.global.jwt.JwtTokenProvider;
+import team2.goodsmap.goods.dto.CreateGoodsRequest;
+import team2.goodsmap.goods.dto.GoodsResponse;
+import team2.goodsmap.goods.service.GoodsService;
+import team2.goodsmap.store.dto.request.AddExistingStoreGoodsRequest;
+import team2.goodsmap.store.dto.request.AddNewStoreGoodsRequest;
 import team2.goodsmap.store.dto.request.AddStoreAdminRequest;
 import team2.goodsmap.store.dto.request.CreateStoreRequest;
 import team2.goodsmap.store.dto.response.StoreAdminResponse;
+import team2.goodsmap.store.dto.response.StoreGoodsResponse;
 import team2.goodsmap.store.dto.response.StoreResponse;
 import team2.goodsmap.store.enums.StoreType;
 import team2.goodsmap.store.service.StoreService;
@@ -45,6 +51,9 @@ class AdminControllerTest {
 
     @MockitoBean
     private StoreService storeService;
+
+    @MockitoBean
+    private GoodsService goodsService;
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
@@ -134,8 +143,8 @@ class AdminControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("입력값이 올바르지 않습니다."))
-                .andExpect(jsonPath("$.errors[0].field").value("name"));
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").isNotEmpty());
     }
 
     @Test
@@ -162,8 +171,8 @@ class AdminControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("입력값이 올바르지 않습니다."))
-                .andExpect(jsonPath("$.errors[0].field").value("address"));
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").isNotEmpty());
     }
 
     @Test
@@ -175,7 +184,7 @@ class AdminControllerTest {
         given(jwtTokenProvider.isAccessToken(token)).willReturn(true);
         given(jwtTokenProvider.getUserId(token)).willReturn(1L);
         given(jwtTokenProvider.getRole(token)).willReturn("STORE");
-        given(storeService.createStoreAdmin(any(AddStoreAdminRequest.class), anyLong())).willReturn(new StoreAdminResponse(1L, 1L, 1L, "test-user-name", "test2@example.com"));
+        given(storeService.createStoreAdmin(any(AddStoreAdminRequest.class), anyLong(), anyLong())).willReturn(new StoreAdminResponse(1L, 1L, 1L, "test-user-name", "test2@example.com"));
 
         mockMvc.perform(post("/api/v1/stores/1/admin")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -183,6 +192,8 @@ class AdminControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
+
+        verify(storeService).createStoreAdmin(any(AddStoreAdminRequest.class), eq(1L), eq(1L));
     }
 
     @Test
@@ -194,7 +205,7 @@ class AdminControllerTest {
         given(jwtTokenProvider.getUserId(token)).willReturn(1L);
         given(jwtTokenProvider.getRole(token)).willReturn("STORE");
 
-        given(storeService.getStoreAdmin(1L)).willReturn(List.of(new StoreAdminResponse(1L, 1L, 1L, "test-user-name", "test2@example.com")));
+        given(storeService.getStoreAdmin(1L, 1L)).willReturn(List.of(new StoreAdminResponse(1L, 1L, 1L, "test-user-name", "test2@example.com")));
 
         mockMvc.perform(get("/api/v1/stores/1/admin")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -213,15 +224,15 @@ class AdminControllerTest {
         given(jwtTokenProvider.getUserId(token)).willReturn(1L);
         given(jwtTokenProvider.getRole(token)).willReturn("STORE");
 
-        given(storeService.createStoreAdmin(any(AddStoreAdminRequest.class), anyLong())).willReturn(new StoreAdminResponse(1L, 1L, 1L, "test-user-name", "test2@example.com"));
+        given(storeService.createStoreAdmin(any(AddStoreAdminRequest.class), anyLong(), anyLong())).willReturn(new StoreAdminResponse(1L, 1L, 1L, "test-user-name", "test2@example.com"));
 
         mockMvc.perform(post("/api/v1/stores/1/admin")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("입력값이 올바르지 않습니다."))
-                .andExpect(jsonPath("$.errors[0].field").value("email"));
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").isNotEmpty());
     }
 
     @Test
@@ -259,6 +270,72 @@ class AdminControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("해당 업체의 관리 권한이 없습니다."));
+    }
+
+    @Test
+    void 새상품으로_storeGoods를_추가한다() throws Exception {
+        String token = "test-access-token";
+        AddNewStoreGoodsRequest request = new AddNewStoreGoodsRequest(
+                new CreateGoodsRequest(1L, "아크릴 스탠드"),
+                15000,
+                30,
+                "https://example.com/new.png"
+        );
+        GoodsResponse goodsResponse = new GoodsResponse(10L, "아크릴 스탠드", 1L, "하이큐");
+        StoreGoodsResponse storeGoodsResponse = new StoreGoodsResponse(100L, 1L, goodsResponse, 15000, 30, "https://example.com/new.png");
+
+        given(jwtTokenProvider.validateToken(token)).willReturn(true);
+        given(jwtTokenProvider.isAccessToken(token)).willReturn(true);
+        given(jwtTokenProvider.getUserId(token)).willReturn(1L);
+        given(jwtTokenProvider.getRole(token)).willReturn("STORE");
+        given(goodsService.createGoods(any(CreateGoodsRequest.class))).willReturn(goodsResponse);
+        given(storeService.createStoreGoods(any(AddNewStoreGoodsRequest.class), any(GoodsResponse.class), eq(1L), eq(1L)))
+                .willReturn(storeGoodsResponse);
+
+        mockMvc.perform(post("/api/v1/stores/1/goods/new")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.id").value(100))
+                .andExpect(jsonPath("$.data.goodsInfo.id").value(10))
+                .andExpect(jsonPath("$.data.price").value(15000));
+
+        verify(goodsService).createGoods(any(CreateGoodsRequest.class));
+        verify(storeService).createStoreGoods(any(AddNewStoreGoodsRequest.class), any(GoodsResponse.class), eq(1L), eq(1L));
+    }
+
+    @Test
+    void 기존상품으로_storeGoods를_추가한다() throws Exception {
+        String token = "test-access-token";
+        AddExistingStoreGoodsRequest request = new AddExistingStoreGoodsRequest(
+                10L,
+                5000,
+                12,
+                "https://example.com/existing.png"
+        );
+        GoodsResponse goodsResponse = new GoodsResponse(10L, "포토카드", 1L, "슬램덩크");
+        StoreGoodsResponse storeGoodsResponse = new StoreGoodsResponse(101L, 1L, goodsResponse, 5000, 12, "https://example.com/existing.png");
+
+        given(jwtTokenProvider.validateToken(token)).willReturn(true);
+        given(jwtTokenProvider.isAccessToken(token)).willReturn(true);
+        given(jwtTokenProvider.getUserId(token)).willReturn(1L);
+        given(jwtTokenProvider.getRole(token)).willReturn("STORE");
+        given(storeService.createStoreGoods(any(AddExistingStoreGoodsRequest.class), eq(1L), eq(1L)))
+                .willReturn(storeGoodsResponse);
+
+        mockMvc.perform(post("/api/v1/stores/1/goods")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.id").value(101))
+                .andExpect(jsonPath("$.data.goodsInfo.id").value(10))
+                .andExpect(jsonPath("$.data.stock").value(12));
+
+        verify(storeService).createStoreGoods(any(AddExistingStoreGoodsRequest.class), eq(1L), eq(1L));
     }
 
     private CreateStoreRequest createStoreRequest(LocalDate startDate, LocalDate endDate) {

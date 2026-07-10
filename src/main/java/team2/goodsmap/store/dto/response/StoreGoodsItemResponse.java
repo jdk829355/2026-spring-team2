@@ -2,23 +2,21 @@ package team2.goodsmap.store.dto.response;
 
 import team2.goodsmap.store.entity.StoreGoods;
 
-public record NewStoreGoodsResponse(
-        Long id,
-        Long storeId,
+public record StoreGoodsItemResponse(
+        Long storeGoodsId,
         Long goodsId,
         String goodsName,
-        Long animationId,
+        String animationTitle,
         int price,
         int stock,
         String imagePath
 ) {
-    public static NewStoreGoodsResponse from(StoreGoods storeGoods) {
-        return new NewStoreGoodsResponse(
+    public static StoreGoodsItemResponse from(StoreGoods storeGoods) {
+        return new StoreGoodsItemResponse(
                 storeGoods.getId(),
-                storeGoods.getStore().getId(),
                 storeGoods.getGoods().getId(),
                 storeGoods.getGoods().getName(),
-                storeGoods.getGoods().getAnimation().getId(),
+                storeGoods.getGoods().getAnimation().getTitle(),
                 storeGoods.getPrice(),
                 storeGoods.getStock(),
                 storeGoods.getImagePath()

@@ -5,12 +5,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import team2.goodsmap.global.exception.NotFoundException;
-import team2.goodsmap.store.dto.StoreGoodsItemResponse;
-import team2.goodsmap.store.dto.StoreMapResponse;
-import team2.goodsmap.store.dto.StoreResponse;
+import team2.goodsmap.global.jwt.JwtTokenProvider;
+import team2.goodsmap.store.dto.response.StoreGoodsItemResponse;
+import team2.goodsmap.store.dto.response.StoreMapResponse;
+import team2.goodsmap.store.dto.response.StoreResponse;
+import team2.goodsmap.store.enums.StoreType;
 import team2.goodsmap.store.service.StoreService;
 
 import java.util.List;
@@ -32,12 +35,18 @@ class StoreControllerTest {
     @MockitoBean
     private StoreService storeService;
 
+    @MockitoBean
+    private JwtTokenProvider jwtTokenProvider;
+
+    @MockitoBean
+    private JpaMetamodelMappingContext jpaMetamodelMappingContext;
+
     @Test
     @DisplayName("GET /api/v1/stores - 스토어 목록을 조회한다")
     void getStores_성공() throws Exception {
         // given
         given(storeService.getStores(any(), any(), any())).willReturn(List.of(
-                StoreResponse.builder().id(1L).name("강남점").type("POPUP").address("서울특별시 강남구").build()
+                new StoreResponse(1L, "강남점", null, StoreType.POPUP, null, null, "서울특별시 강남구", null, null)
         ));
 
         // when & then
@@ -59,8 +68,7 @@ class StoreControllerTest {
         // given
         given(storeService.getStoresForMap(anyDouble(), anyDouble(), any(), any(), any()))
                 .willReturn(List.of(
-                        StoreMapResponse.builder().id(1L).name("강남점").type("POPUP")
-                                .address("서울특별시 강남구").distance(120.5).build()
+                        new StoreMapResponse(1L, "강남점", "POPUP", "서울특별시 강남구", null, null, null, null, 120.5)
                 ));
 
         // when & then
@@ -77,10 +85,7 @@ class StoreControllerTest {
     void getStoreGoods_성공() throws Exception {
         // given
         given(storeService.getStoreGoods(7L)).willReturn(List.of(
-                StoreGoodsItemResponse.builder()
-                        .storeGoodsId(58L).goodsId(12L).goodsName("마이멜로디 텀블러")
-                        .animationTitle("산리오 캐릭터즈").price(15000).stock(30).imagePath("img.png")
-                        .build()
+                new StoreGoodsItemResponse(58L, 12L, "마이멜로디 텀블러", "산리오 캐릭터즈", 15000, 30, "img.png")
         ));
 
         // when & then
@@ -99,6 +104,6 @@ class StoreControllerTest {
         // when & then
         mockMvc.perform(get("/api/v1/stores/{storeId}/goods", 999L))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.success").value(false));
+                .andExpect(jsonPath("$.status").value(404));
     }
 }
