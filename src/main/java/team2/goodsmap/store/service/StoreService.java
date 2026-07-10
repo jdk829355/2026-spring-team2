@@ -82,7 +82,7 @@ public class StoreService {
 
     public StoreAdminResponse createStoreAdmin(AddStoreAdminRequest request, Long storeId, Long userId){
         // 대상 사용자가 있는지
-        User user = userRepository.findUserByEmail(request.email()).orElseThrow(
+        User user = userRepository.findByEmail(request.email()).orElseThrow(
                 () -> new IllegalArgumentException("사용자가 없습니다.")
         );
 
