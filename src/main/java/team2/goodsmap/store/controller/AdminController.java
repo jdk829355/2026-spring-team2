@@ -1,6 +1,8 @@
 package team2.goodsmap.store.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.hibernate.engine.spi.Status;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import jakarta.validation.Valid;
@@ -8,11 +10,9 @@ import org.springframework.web.bind.annotation.*;
 import team2.goodsmap.global.common.ApiResponse;
 import team2.goodsmap.goods.dto.GoodsResponse;
 import team2.goodsmap.goods.service.GoodsService;
-import team2.goodsmap.store.dto.request.AddExistingStoreGoodsRequest;
-import team2.goodsmap.store.dto.request.AddNewStoreGoodsRequest;
-import team2.goodsmap.store.dto.request.AddStoreAdminRequest;
-import team2.goodsmap.store.dto.request.CreateStoreRequest;
+import team2.goodsmap.store.dto.request.*;
 import team2.goodsmap.store.dto.response.StoreAdminResponse;
+import team2.goodsmap.store.dto.response.StoreDetailResponse;
 import team2.goodsmap.store.dto.response.StoreGoodsResponse;
 import team2.goodsmap.store.dto.response.StoreResponse;
 import team2.goodsmap.store.service.StoreService;
@@ -92,5 +92,44 @@ public class AdminController {
     ){
         StoreGoodsResponse storeGoods = storeService.createStoreGoods(request, userId, storeId);
         return ResponseEntity.ok(ApiResponse.success(storeGoods));
+    }
+
+    @PatchMapping("/{storeId}/goods/{storeGoodsId}")
+    public ResponseEntity<ApiResponse<StoreGoodsResponse>> modifyStoreGoods(
+            @PathVariable Long storeId,
+            @PathVariable Long storeGoodsId,
+            @Valid @RequestBody UpdateStoreGoodsRequest request,
+            @AuthenticationPrincipal Long userId
+    ){
+        StoreGoodsResponse storeGoods = storeService.modifyStoreGoods(storeId, storeGoodsId, request, userId);
+        return ResponseEntity.ok(ApiResponse.success(storeGoods));
+    }
+
+    @DeleteMapping("/{storeId}/goods/{storeGoodsId}")
+    public ResponseEntity<ApiResponse<Void>> deleteStoreGoods(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long storeId,
+            @PathVariable Long storeGoodsId
+    ){
+        storeService.deleteStoreGoods(storeId, storeGoodsId, userId);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    @PatchMapping("/{storeId}")
+    public ResponseEntity<ApiResponse<StoreResponse>> updateStore(
+            @PathVariable Long storeId,
+            @Valid @RequestBody UpdateStoreRequest request,
+            @AuthenticationPrincipal Long userId
+    ){
+        StoreResponse store = storeService.updateStore(request, storeId, userId);
+        return ResponseEntity.ok(ApiResponse.success(store));
+    }
+
+    @GetMapping("/{storeId}")
+    public ResponseEntity<ApiResponse<StoreDetailResponse>> getStoreDetail(
+            @PathVariable Long storeId
+    ){
+        StoreDetailResponse storeDetail = storeService.getStoreDetail(storeId);
+        return ResponseEntity.ok(ApiResponse.success(storeDetail));
     }
 }

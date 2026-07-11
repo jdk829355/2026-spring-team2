@@ -13,13 +13,13 @@ import team2.goodsmap.goods.entity.Animation;
 import team2.goodsmap.goods.entity.Goods;
 import team2.goodsmap.goods.repository.AnimationRepository;
 import team2.goodsmap.goods.repository.GoodsRepository;
-import team2.goodsmap.store.dto.request.AddExistingStoreGoodsRequest;
-import team2.goodsmap.store.dto.request.AddNewStoreGoodsRequest;
-import team2.goodsmap.store.dto.request.AddStoreAdminRequest;
-import team2.goodsmap.store.dto.request.CreateStoreRequest;
+import team2.goodsmap.global.exception.NotFoundException;
+import team2.goodsmap.store.dto.request.*;
 import team2.goodsmap.store.dto.response.StoreAdminResponse;
+import team2.goodsmap.store.dto.response.StoreDetailResponse;
 import team2.goodsmap.store.dto.response.StoreGoodsResponse;
 import team2.goodsmap.store.dto.response.StoreResponse;
+import team2.goodsmap.store.entity.Store;
 import team2.goodsmap.store.enums.StoreType;
 import team2.goodsmap.store.repository.StoreGoodsRepository;
 import team2.goodsmap.user.entity.User;
@@ -284,6 +284,217 @@ class StoreServiceTest {
         Assertions.assertThat(response.price()).isEqualTo(5000);
         Assertions.assertThat(response.stock()).isEqualTo(12);
         Assertions.assertThat(storeGoodsRepository.findByStoreId(store.id())).hasSize(1);
+    }
+
+    @Test
+    void storeGoods_삭제_성공() {
+        StoreResponse store = storeService.createStore(
+                createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)),
+                testUser.getId());
+        Animation animation = animationRepository.save(animation("슬램덩크"));
+        Goods goods = goodsRepository.save(Goods.builder()
+                .name("포토카드")
+                .animation(animation)
+                .build());
+
+        AddExistingStoreGoodsRequest request = new AddExistingStoreGoodsRequest(
+                goods.getId(),
+                5000,
+                12,
+                "https://example.com/existing.png"
+        );
+        StoreGoodsResponse storeGoods = storeService.createStoreGoods(request, testUser.getId(), store.id());
+
+        storeService.deleteStoreGoods(store.id(), storeGoods.id(), testUser.getId());
+
+        Assertions.assertThat(storeGoodsRepository.findByStoreId(store.id())).isEmpty();
+    }
+
+    @Test
+    void storeGoods_삭제_권한_없음() {
+        StoreResponse store = storeService.createStore(
+                createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)),
+                testUser.getId());
+
+        User otherUser = User.builder()
+                .email("other@example.com")
+                .password("password")
+                .role(UserRole.USER)
+                .name("other")
+                .build();
+        userRepository.save(otherUser);
+
+        Assertions.assertThatThrownBy(() ->
+                        storeService.deleteStoreGoods(store.id(), 1L, otherUser.getId()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("삭제 권한이 없습니다.");
+    }
+
+    @Test
+    void storeGoods_삭제_상품_없음() {
+        StoreResponse store = storeService.createStore(
+                createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)),
+                testUser.getId());
+
+        Assertions.assertThatThrownBy(() ->
+                        storeService.deleteStoreGoods(store.id(), 9999L, testUser.getId()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("해당 상품이 없습니다.");
+    }
+
+    @Test
+    void 가격과_재고를_수정한다(){
+        StoreResponse store = storeService.createStore(
+                createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)),
+                testUser.getId());
+
+        Animation animation = animationRepository.save(animation("슬램덩크"));
+
+        Goods goods = goodsRepository.save(Goods.builder()
+                .name("포토카드")
+                .animation(animation)
+                .build());
+
+        AddExistingStoreGoodsRequest request = new AddExistingStoreGoodsRequest(
+                goods.getId(),
+                5000,
+                12,
+                "https://example.com/existing.png"
+        );
+
+        StoreGoodsResponse storeGoods = storeService.createStoreGoods(request, testUser.getId(), store.id());
+
+        StoreGoodsResponse storeGoodsResponse = storeService.modifyStoreGoods(store.id(), storeGoods.id(), new UpdateStoreGoodsRequest(6000, 15, null), testUser.getId());
+        Assertions.assertThat(storeGoodsResponse.price()).isEqualTo(6000);
+        Assertions.assertThat(storeGoodsResponse.stock()).isEqualTo(15);
+    }
+
+    @Test
+    void 업체_정보를_수정한다() {
+        StoreResponse store = storeService.createStore(
+                createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)),
+                testUser.getId());
+
+        UpdateStoreRequest request = new UpdateStoreRequest(
+                "수정된 이름", "수정된 설명", StoreType.POPUP,
+                LocalDate.of(2025, 6, 1), LocalDate.of(2025, 6, 30),
+                "변경된 주소", BigDecimal.valueOf(37.5), BigDecimal.valueOf(127.0)
+        );
+
+        StoreResponse updated = storeService.updateStore(request, store.id(), testUser.getId());
+
+        Assertions.assertThat(updated.name()).isEqualTo("수정된 이름");
+        Assertions.assertThat(updated.description()).isEqualTo("수정된 설명");
+        Assertions.assertThat(updated.startDate()).isEqualTo(LocalDate.of(2025, 6, 1));
+        Assertions.assertThat(updated.endDate()).isEqualTo(LocalDate.of(2025, 6, 30));
+        Assertions.assertThat(updated.address()).isEqualTo("변경된 주소");
+        Assertions.assertThat(updated.lat()).isEqualByComparingTo(BigDecimal.valueOf(37.5));
+        Assertions.assertThat(updated.lng()).isEqualByComparingTo(BigDecimal.valueOf(127.0));
+    }
+
+    @Test
+    void 업체_수정_권한_없음() {
+        StoreResponse store = storeService.createStore(
+                createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)),
+                testUser.getId());
+
+        User otherUser = User.builder()
+                .email("other@example.com")
+                .password("password")
+                .role(UserRole.USER)
+                .name("other")
+                .build();
+        userRepository.save(otherUser);
+
+        UpdateStoreRequest request = new UpdateStoreRequest(
+                "수정된 이름", null, null, null, null, null, null, null
+        );
+
+        Assertions.assertThatThrownBy(() ->
+                        storeService.updateStore(request, store.id(), otherUser.getId()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("수정 권한이 없습니다.");
+    }
+
+    @Test
+    void updateStore_시작일이_종료일보다_늦으면_예외가_발생한다() {
+        StoreResponse store = storeService.createStore(
+                createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)),
+                testUser.getId());
+
+        UpdateStoreRequest request = new UpdateStoreRequest(
+                null, null, null,
+                LocalDate.of(2025, 12, 31), LocalDate.of(2025, 1, 1),
+                null, null, null
+        );
+
+        Assertions.assertThatThrownBy(() ->
+                        storeService.updateStore(request, store.id(), testUser.getId()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("시작일은 종료일보다 늦을 수 없습니다.");
+    }
+
+    @Test
+    void updateStore_시작일만_갱신할_때_기존_종료일보다_늦으면_예외가_발생한다() {
+        StoreResponse store = storeService.createStore(
+                createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)),
+                testUser.getId());
+
+        UpdateStoreRequest request = new UpdateStoreRequest(
+                null, null, null,
+                LocalDate.of(2024, 1, 1), null,  // 기존 endDate(2023-12-31)보다 늦음
+                null, null, null
+        );
+
+        Assertions.assertThatThrownBy(() ->
+                        storeService.updateStore(request, store.id(), testUser.getId()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("시작일은 종료일보다 늦을 수 없습니다.");
+    }
+
+    @Test
+    void updateStore_종료일만_갱신할_때_기존_시작일보다_빠르면_예외가_발생한다() {
+        StoreResponse store = storeService.createStore(
+                createStoreRequest(LocalDate.of(2023, 6, 1), LocalDate.of(2023, 12, 31)),
+                testUser.getId());
+
+        UpdateStoreRequest request = new UpdateStoreRequest(
+                null, null, null,
+                null, LocalDate.of(2023, 5, 31),  // 기존 startDate(2023-06-01)보다 빠름
+                null, null, null
+        );
+
+        Assertions.assertThatThrownBy(() ->
+                        storeService.updateStore(request, store.id(), testUser.getId()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("시작일은 종료일보다 늦을 수 없습니다.");
+    }
+
+    @Test
+    void getStoreDetail_스토어_상세_조회_성공() {
+        StoreResponse store = storeService.createStore(
+                createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)),
+                testUser.getId());
+
+        StoreDetailResponse detail = storeService.getStoreDetail(store.id());
+
+        Assertions.assertThat(detail.id()).isEqualTo(store.id());
+        Assertions.assertThat(detail.name()).isEqualTo("애니메이트");
+        Assertions.assertThat(detail.description()).isEqualTo("다 있어요");
+        Assertions.assertThat(detail.type()).isEqualTo(StoreType.POPUP);
+        Assertions.assertThat(detail.startDate()).isEqualTo(LocalDate.of(2023, 1, 1));
+        Assertions.assertThat(detail.endDate()).isEqualTo(LocalDate.of(2023, 12, 31));
+        Assertions.assertThat(detail.address()).isEqualTo("서울특별시 마포구 양화로 188");
+        Assertions.assertThat(detail.lat()).isEqualByComparingTo(BigDecimal.valueOf(37.557743));
+        Assertions.assertThat(detail.lng()).isEqualByComparingTo(BigDecimal.valueOf(126.926487));
+        Assertions.assertThat(detail.goodsCount()).isEqualTo(0L);
+    }
+
+    @Test
+    void getStoreDetail_스토어가_존재하지_않으면_예외() {
+        Assertions.assertThatThrownBy(() -> storeService.getStoreDetail(9999L))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("존재하지 않는 스토어입니다.");
     }
 
     private CreateStoreRequest createStoreRequest(LocalDate startDate, LocalDate endDate) {

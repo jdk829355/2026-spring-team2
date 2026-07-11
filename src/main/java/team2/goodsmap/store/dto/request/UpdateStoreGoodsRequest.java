@@ -1,8 +1,10 @@
 package team2.goodsmap.store.dto.request;
 
+import jakarta.validation.constraints.Min;
+
 public record UpdateStoreGoodsRequest(
-        Integer price,
-        Integer stock,
+        @Min(0) Integer price,
+        @Min(0) Integer stock,
         String imagePath
 ) {
 }

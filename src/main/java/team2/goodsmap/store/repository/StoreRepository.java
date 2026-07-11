@@ -3,6 +3,7 @@ package team2.goodsmap.store.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import team2.goodsmap.store.dto.response.StoreDetailResponse;
 import team2.goodsmap.store.entity.Store;
 
 import java.util.List;
@@ -45,4 +46,23 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
     // 지역 탭 목록 조회용 - 전체 주소 원본
     @Query("SELECT DISTINCT s.address FROM Store s")
     List<String> findAllAddresses();
+
+    @Query("""
+        SELECT
+            s.id,
+            s.name,
+            s.description,
+            s.type,
+            s.startDate,
+            s.endDate,
+            s.address,
+            s.lat,
+            s.lng,
+            COUNT(DISTINCT sg.goods) AS goodsCount
+        FROM Store s
+        LEFT JOIN StoreGoods sg ON sg.store = s
+        WHERE s.id = :storeId
+        GROUP BY s.id
+    """)
+    StoreDetailResponse getStoreDetail(Long storeId);
 }

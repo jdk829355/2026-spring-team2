@@ -7,10 +7,7 @@ import team2.goodsmap.global.exception.NotFoundException;
 import team2.goodsmap.global.util.GeoUtils;
 import team2.goodsmap.goods.dto.GoodsResponse;
 import team2.goodsmap.goods.repository.GoodsRepository;
-import team2.goodsmap.store.dto.request.AddExistingStoreGoodsRequest;
-import team2.goodsmap.store.dto.request.AddNewStoreGoodsRequest;
-import team2.goodsmap.store.dto.request.AddStoreAdminRequest;
-import team2.goodsmap.store.dto.request.CreateStoreRequest;
+import team2.goodsmap.store.dto.request.*;
 import team2.goodsmap.store.dto.response.*;
 import team2.goodsmap.store.entity.Store;
 import team2.goodsmap.store.entity.StoreAdmin;
@@ -162,12 +159,17 @@ public class StoreService {
         storeAdminRepository.delete(target);
     }
 
+    // 유저가 해당 업체에 관리 권한이 있는지 체크
+    private void validateStoreAdmin(Long userId, Long storeId, String message) {
+        if (!storeAdminRepository.existsByUserIdAndStoreId(userId, storeId)) {
+            throw new IllegalArgumentException(message);
+        }
+    }
+
     // StoreGoods를 생성 (Goods도 새로 만든 경우) - POST /api/v1/stores/{storeId}/goods/new
     public StoreGoodsResponse createStoreGoods (AddNewStoreGoodsRequest request, GoodsResponse goodsResponse, Long userId, Long storeId) {
         // 업체 관리자 여부 확인
-        if (!storeAdminRepository.existsByUserIdAndStoreId(userId, storeId)){
-            throw new IllegalArgumentException("상품 추가 권한이 없습니다.");
-        }
+        validateStoreAdmin(userId, storeId, "상품 추가 권한이 없습니다.");
         // StoreGoods 생성
         StoreGoods storeGoods = StoreGoods.builder()
                 .price(request.price())
@@ -185,9 +187,7 @@ public class StoreService {
     // StoreGoods를 생성 (Goods가 기존에 있는 경우) - POST /api/v1/stores/{storeId}/goods
     public StoreGoodsResponse createStoreGoods (AddExistingStoreGoodsRequest request, Long userId, Long storeId) {
         // 업체 관리자 여부 확인
-        if (!storeAdminRepository.existsByUserIdAndStoreId(userId, storeId)){
-            throw new IllegalArgumentException("상품 추가 권한이 없습니다.");
-        }
+        validateStoreAdmin(userId, storeId, "상품 추가 권한이 없습니다.");
         // StoreGoods 생성
         StoreGoods storeGoods = StoreGoods.builder()
                 .price(request.price())
@@ -200,6 +200,47 @@ public class StoreService {
         storeGoodsRepository.save(storeGoods);
         // StoreGoodsResponse 반환
         return StoreGoodsResponse.from(storeGoods);
+    }
+
+    // 재고, 가격, 이미지 경로 수정 - PATCH /api/v1/stores/{storeId}/goods/{storeGoodsId}
+    public StoreGoodsResponse modifyStoreGoods(Long storeId, Long storeGoodsId, UpdateStoreGoodsRequest request, Long userId) {
+        // 유저 권한 확인
+        validateStoreAdmin(userId, storeId, "수정 권한이 없습니다.");
+
+        StoreGoods storeGoods = storeGoodsRepository.findWithGoodsById(storeGoodsId).orElseThrow(() -> new IllegalArgumentException("해당 상품이 없습니다."));
+
+        // 수정 로직
+        storeGoods.update(request.price(), request.stock(), request.imagePath());
+
+        storeGoodsRepository.save(storeGoods);
+        return StoreGoodsResponse.from(storeGoods);
+    }
+
+    public void deleteStoreGoods(Long storeId, Long storeGoodsId, Long userId) {
+        // 유저 권한 확인
+        validateStoreAdmin(userId, storeId, "삭제 권한이 없습니다.");
+
+        StoreGoods storeGoods = storeGoodsRepository.findWithGoodsById(storeGoodsId).orElseThrow(() -> new IllegalArgumentException("해당 상품이 없습니다."));
+        storeGoodsRepository.delete(storeGoods);
+    }
+
+    public StoreResponse updateStore(UpdateStoreRequest request, Long storeId, Long userId){
+        // 유저 권한 확인
+        validateStoreAdmin(userId, storeId, "수정 권한이 없습니다.");
+        // Store 업데이트 로직
+        Store store = storeRepository.findById(storeId).orElseThrow(() -> new IllegalArgumentException("해당 스토어가 없습니다."));
+        store.update(request.name(), request.description(), request.type(), request.startDate(), request.endDate(), request.address(), request.lat(), request.lng());
+
+        storeRepository.save(store);
+        return StoreResponse.from(store);
+    }
+
+    public StoreDetailResponse getStoreDetail(Long storeId) {
+        // store 존재 확인
+        if(!storeRepository.existsById(storeId)) {
+            throw new NotFoundException("존재하지 않는 스토어입니다. id=" + storeId);
+        }
+        return storeRepository.getStoreDetail(storeId);
     }
 
     // 재고 조회(Public) 3개 메서드

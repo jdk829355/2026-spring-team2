@@ -51,4 +51,14 @@ public class StoreGoods {
         this.goods = goods;
         this.store = store;
     }
+
+    public void update(Integer price, Integer stock, String imagePath) {
+        // null일 때는 수정 안 함
+        if(price != null)
+            this.price = price;
+        if(stock != null)
+            this.stock = stock;
+        if(imagePath != null)
+            this.imagePath = imagePath;
+    }
 }
