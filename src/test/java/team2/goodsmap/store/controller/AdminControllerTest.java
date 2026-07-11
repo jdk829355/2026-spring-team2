@@ -14,10 +14,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import team2.goodsmap.global.config.SecurityConfig;
 import team2.goodsmap.global.exception.NotFoundException;
 import team2.goodsmap.global.jwt.JwtTokenProvider;
+import team2.goodsmap.global.s3.S3Service;
 import team2.goodsmap.goods.dto.CreateGoodsRequest;
 import team2.goodsmap.goods.dto.GoodsResponse;
 import team2.goodsmap.goods.service.GoodsService;
 import team2.goodsmap.store.dto.request.AddExistingStoreGoodsRequest;
+import team2.goodsmap.store.dto.request.AddImagePathRequest;
 import team2.goodsmap.store.dto.request.AddNewStoreGoodsRequest;
 import team2.goodsmap.store.dto.request.AddStoreAdminRequest;
 import team2.goodsmap.store.dto.request.CreateStoreRequest;
@@ -43,6 +45,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -60,6 +63,9 @@ class AdminControllerTest {
 
     @MockitoBean
     private GoodsService goodsService;
+
+    @MockitoBean
+    private S3Service s3Service;
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
@@ -284,8 +290,7 @@ class AdminControllerTest {
         AddNewStoreGoodsRequest request = new AddNewStoreGoodsRequest(
                 new CreateGoodsRequest(1L, "아크릴 스탠드"),
                 15000,
-                30,
-                "https://example.com/new.png"
+                30
         );
         GoodsResponse goodsResponse = new GoodsResponse(10L, "아크릴 스탠드", 1L, "하이큐");
         StoreGoodsResponse storeGoodsResponse = new StoreGoodsResponse(100L, 1L, goodsResponse, 15000, 30, "https://example.com/new.png");
@@ -318,8 +323,7 @@ class AdminControllerTest {
         AddExistingStoreGoodsRequest request = new AddExistingStoreGoodsRequest(
                 10L,
                 5000,
-                12,
-                "https://example.com/existing.png"
+                12
         );
         GoodsResponse goodsResponse = new GoodsResponse(10L, "포토카드", 1L, "슬램덩크");
         StoreGoodsResponse storeGoodsResponse = new StoreGoodsResponse(101L, 1L, goodsResponse, 5000, 12, "https://example.com/existing.png");
@@ -520,6 +524,92 @@ class AdminControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.message").value("존재하지 않는 스토어입니다. id=999"));
+    }
+
+    @Test
+    void storeGoods_이미지_경로_수정_성공() throws Exception {
+        String token = "test-access-token";
+        AddImagePathRequest request = new AddImagePathRequest(
+                "stores/1/goods/100/images/550e8400-e29b-41d4-a716-446655440000.png");
+
+        given(jwtTokenProvider.validateToken(token)).willReturn(true);
+        given(jwtTokenProvider.isAccessToken(token)).willReturn(true);
+        given(jwtTokenProvider.getUserId(token)).willReturn(1L);
+        given(jwtTokenProvider.getRole(token)).willReturn("STORE");
+
+        willDoNothing().given(storeService).updateImagePath(eq(1L), eq(1L), eq(100L), any(AddImagePathRequest.class));
+
+        mockMvc.perform(put("/api/v1/stores/1/goods/100/image-path")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        verify(storeService).updateImagePath(eq(1L), eq(1L), eq(100L), any(AddImagePathRequest.class));
+    }
+
+    @Test
+    void storeGoods_이미지_경로_수정_objectKey_빈값_400() throws Exception {
+        String token = "test-access-token";
+        AddImagePathRequest request = new AddImagePathRequest("");
+
+        given(jwtTokenProvider.validateToken(token)).willReturn(true);
+        given(jwtTokenProvider.isAccessToken(token)).willReturn(true);
+        given(jwtTokenProvider.getUserId(token)).willReturn(1L);
+        given(jwtTokenProvider.getRole(token)).willReturn("STORE");
+
+        mockMvc.perform(put("/api/v1/stores/1/goods/100/image-path")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").isNotEmpty());
+    }
+
+    @Test
+    void storeGoods_이미지_경로_수정_권한_없음_400() throws Exception {
+        String token = "test-access-token";
+        AddImagePathRequest request = new AddImagePathRequest(
+                "stores/1/goods/100/images/550e8400-e29b-41d4-a716-446655440000.png");
+
+        given(jwtTokenProvider.validateToken(token)).willReturn(true);
+        given(jwtTokenProvider.isAccessToken(token)).willReturn(true);
+        given(jwtTokenProvider.getUserId(token)).willReturn(1L);
+        given(jwtTokenProvider.getRole(token)).willReturn("STORE");
+
+        willThrow(new IllegalArgumentException("이미지 경로 수정 권한이 없습니다."))
+                .given(storeService).updateImagePath(eq(1L), eq(1L), eq(100L), any(AddImagePathRequest.class));
+
+        mockMvc.perform(put("/api/v1/stores/1/goods/100/image-path")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("이미지 경로 수정 권한이 없습니다."));
+    }
+
+    @Test
+    void storeGoods_이미지_경로_수정_상품_없음_400() throws Exception {
+        String token = "test-access-token";
+        AddImagePathRequest request = new AddImagePathRequest(
+                "stores/1/goods/100/images/550e8400-e29b-41d4-a716-446655440000.png");
+
+        given(jwtTokenProvider.validateToken(token)).willReturn(true);
+        given(jwtTokenProvider.isAccessToken(token)).willReturn(true);
+        given(jwtTokenProvider.getUserId(token)).willReturn(1L);
+        given(jwtTokenProvider.getRole(token)).willReturn("STORE");
+
+        willThrow(new IllegalArgumentException("해당 상품이 없습니다."))
+                .given(storeService).updateImagePath(eq(1L), eq(1L), eq(100L), any(AddImagePathRequest.class));
+
+        mockMvc.perform(put("/api/v1/stores/1/goods/100/image-path")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("해당 상품이 없습니다."));
     }
 
     private CreateStoreRequest createStoreRequest(LocalDate startDate, LocalDate endDate) {

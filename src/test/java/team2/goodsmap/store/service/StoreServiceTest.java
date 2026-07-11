@@ -240,8 +240,7 @@ class StoreServiceTest {
         AddNewStoreGoodsRequest request = new AddNewStoreGoodsRequest(
                 null,
                 15000,
-                30,
-                "https://example.com/new.png"
+                30
         );
         GoodsResponse goodsResponse = new GoodsResponse(
                 goods.getId(),
@@ -273,8 +272,7 @@ class StoreServiceTest {
         AddExistingStoreGoodsRequest request = new AddExistingStoreGoodsRequest(
                 goods.getId(),
                 5000,
-                12,
-                "https://example.com/existing.png"
+                12
         );
 
         StoreGoodsResponse response = storeService.createStoreGoods(request, testUser.getId(), store.id());
@@ -300,8 +298,7 @@ class StoreServiceTest {
         AddExistingStoreGoodsRequest request = new AddExistingStoreGoodsRequest(
                 goods.getId(),
                 5000,
-                12,
-                "https://example.com/existing.png"
+                12
         );
         StoreGoodsResponse storeGoods = storeService.createStoreGoods(request, testUser.getId(), store.id());
 
@@ -358,8 +355,7 @@ class StoreServiceTest {
         AddExistingStoreGoodsRequest request = new AddExistingStoreGoodsRequest(
                 goods.getId(),
                 5000,
-                12,
-                "https://example.com/existing.png"
+                12
         );
 
         StoreGoodsResponse storeGoods = storeService.createStoreGoods(request, testUser.getId(), store.id());
@@ -495,6 +491,69 @@ class StoreServiceTest {
         Assertions.assertThatThrownBy(() -> storeService.getStoreDetail(9999L))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("존재하지 않는 스토어입니다.");
+    }
+
+    @Test
+    void storeGoods_이미지_경로_수정_성공() {
+        StoreResponse store = storeService.createStore(
+                createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)),
+                testUser.getId());
+        Animation animation = animationRepository.save(animation("슬램덩크"));
+        Goods goods = goodsRepository.save(Goods.builder()
+                .name("포토카드")
+                .animation(animation)
+                .build());
+
+        AddExistingStoreGoodsRequest addRequest = new AddExistingStoreGoodsRequest(
+                goods.getId(), 5000, 12);
+        StoreGoodsResponse storeGoods = storeService.createStoreGoods(addRequest, testUser.getId(), store.id());
+
+        AddImagePathRequest imagePathRequest = new AddImagePathRequest(
+                "stores/1/goods/" + storeGoods.id() + "/images/550e8400-e29b-41d4-a716-446655440000.png");
+        storeService.updateImagePath(testUser.getId(), store.id(), storeGoods.id(), imagePathRequest);
+
+        // DB에서 재조회하여 확인
+        var updated = storeGoodsRepository.findById(storeGoods.id()).orElseThrow();
+        Assertions.assertThat(updated.getImagePath())
+                .isEqualTo("stores/1/goods/" + storeGoods.id() + "/images/550e8400-e29b-41d4-a716-446655440000.png");
+    }
+
+    @Test
+    void storeGoods_이미지_경로_수정_권한_없음() {
+        StoreResponse store = storeService.createStore(
+                createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)),
+                testUser.getId());
+
+        User otherUser = User.builder()
+                .email("other@example.com")
+                .password("password")
+                .role(UserRole.USER)
+                .name("other")
+                .build();
+        userRepository.save(otherUser);
+
+        AddImagePathRequest imagePathRequest = new AddImagePathRequest(
+                "stores/1/goods/1/images/550e8400-e29b-41d4-a716-446655440000.png");
+
+        Assertions.assertThatThrownBy(() ->
+                        storeService.updateImagePath(otherUser.getId(), store.id(), 1L, imagePathRequest))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("이미지 경로 수정 권한이 없습니다.");
+    }
+
+    @Test
+    void storeGoods_이미지_경로_수정_상품_없음() {
+        StoreResponse store = storeService.createStore(
+                createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)),
+                testUser.getId());
+
+        AddImagePathRequest imagePathRequest = new AddImagePathRequest(
+                "stores/1/goods/1/images/550e8400-e29b-41d4-a716-446655440000.png");
+
+        Assertions.assertThatThrownBy(() ->
+                        storeService.updateImagePath(testUser.getId(), store.id(), 9999L, imagePathRequest))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("해당 상품이 없습니다.");
     }
 
     private CreateStoreRequest createStoreRequest(LocalDate startDate, LocalDate endDate) {

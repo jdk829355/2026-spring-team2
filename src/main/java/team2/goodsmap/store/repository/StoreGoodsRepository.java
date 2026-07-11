@@ -25,4 +25,7 @@ public interface StoreGoodsRepository extends JpaRepository<StoreGoods, Long> {
         JOIN FETCH sg.goods g WHERE sg.id = :storeGoodsId
     """)
     Optional<StoreGoods> findWithGoodsById(@Param("storeGoodsId") Long storeGoodsId);
+
+    @Query("SELECT EXISTS(SELECT 1 FROM StoreGoods sg WHERE sg.store.id = :storeId AND sg.id = :storeGoodsId)")
+    boolean existsByStoreIdAndStoreGoodsId(@Param("storeId") Long storeId, @Param("storeGoodsId") Long storeGoodsId);
 }

@@ -160,9 +160,15 @@ public class StoreService {
     }
 
     // 유저가 해당 업체에 관리 권한이 있는지 체크
-    private void validateStoreAdmin(Long userId, Long storeId, String message) {
+    public void validateStoreAdmin(Long userId, Long storeId, String message) {
         if (!storeAdminRepository.existsByUserIdAndStoreId(userId, storeId)) {
             throw new IllegalArgumentException(message);
+        }
+    }
+
+    public void validateStoreGoods(Long storeId, Long storeGoodsId){
+        if (!storeGoodsRepository.existsByStoreIdAndStoreGoodsId(storeId, storeGoodsId)) {
+            throw new IllegalArgumentException("해당 상품이 없습니다.");
         }
     }
 
@@ -176,7 +182,6 @@ public class StoreService {
                 .stock(request.stock())
                 .goods(goodsRepository.findById(goodsResponse.id()).orElseThrow(() -> new IllegalArgumentException("상품이 없습니다.")))
                 .store(storeRepository.findById(storeId).orElseThrow(() -> new IllegalArgumentException("업체가 없습니다.")))
-                .imagePath(request.imagePath())
                 .build();
 
         storeGoodsRepository.save(storeGoods);
@@ -194,7 +199,6 @@ public class StoreService {
                 .stock(request.stock())
                 .goods(goodsRepository.findById(request.goodsId()).orElseThrow(() -> new IllegalArgumentException("상품이 없습니다.")))
                 .store(storeRepository.findById(storeId).orElseThrow(() -> new IllegalArgumentException("업체가 없습니다.")))
-                .imagePath(request.imagePath())
                 .build();
 
         storeGoodsRepository.save(storeGoods);
@@ -241,6 +245,15 @@ public class StoreService {
             throw new NotFoundException("존재하지 않는 스토어입니다. id=" + storeId);
         }
         return storeRepository.getStoreDetail(storeId);
+    }
+
+    public void updateImagePath(Long userId, Long storeId, Long storeGoodsId, AddImagePathRequest request) {
+        validateStoreAdmin(userId, storeId, "이미지 경로 수정 권한이 없습니다.");
+        validateStoreGoods(storeId, storeGoodsId);
+
+        StoreGoods storeGoods = storeGoodsRepository.findById(storeGoodsId).orElseThrow(() -> new IllegalArgumentException("해당 상품이 없습니다."));
+        storeGoods.updateImagePath(request.imagePath());
+        storeGoodsRepository.save(storeGoods);
     }
 
     // 재고 조회(Public) 3개 메서드

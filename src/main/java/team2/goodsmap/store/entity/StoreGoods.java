@@ -1,6 +1,7 @@
 package team2.goodsmap.store.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -28,7 +29,7 @@ public class StoreGoods {
     @Column(nullable = false)
     private int stock;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT")
     private String imagePath;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -60,5 +61,9 @@ public class StoreGoods {
             this.stock = stock;
         if(imagePath != null)
             this.imagePath = imagePath;
+    }
+
+    public void updateImagePath(@NotBlank String s) {
+        this.imagePath = s;
     }
 }
