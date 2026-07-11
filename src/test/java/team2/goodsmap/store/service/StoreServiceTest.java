@@ -472,7 +472,7 @@ class StoreServiceTest {
                 createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)),
                 testUser.getId());
 
-        StoreDetailResponse detail = storeService.getStoreDetail(store.id());
+        StoreDetailResponse detail = storeService.getStoreDetail(store.id(), testUser.getId());
 
         Assertions.assertThat(detail.id()).isEqualTo(store.id());
         Assertions.assertThat(detail.name()).isEqualTo("애니메이트");
@@ -487,8 +487,30 @@ class StoreServiceTest {
     }
 
     @Test
+    void updateStore_기존_startDate가_null일_때_endDate만_갱신한다() {
+        // Store를 startDate, endDate 없이 생성
+        StoreResponse store = storeService.createStore(
+                createStoreRequest(null, null),
+                testUser.getId());
+
+        Assertions.assertThat(store.startDate()).isNull();
+        Assertions.assertThat(store.endDate()).isNull();
+
+        UpdateStoreRequest request = new UpdateStoreRequest(
+                null, null, null,
+                null, LocalDate.of(2025, 12, 31),
+                null, null, null
+        );
+
+        StoreResponse updated = storeService.updateStore(request, store.id(), testUser.getId());
+
+        Assertions.assertThat(updated.startDate()).isNull();
+        Assertions.assertThat(updated.endDate()).isEqualTo(LocalDate.of(2025, 12, 31));
+    }
+
+    @Test
     void getStoreDetail_스토어가_존재하지_않으면_예외() {
-        Assertions.assertThatThrownBy(() -> storeService.getStoreDetail(9999L))
+        Assertions.assertThatThrownBy(() -> storeService.getStoreDetail(9999L, testUser.getId()))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("존재하지 않는 스토어입니다.");
     }
@@ -554,6 +576,95 @@ class StoreServiceTest {
                         storeService.updateImagePath(testUser.getId(), store.id(), 9999L, imagePathRequest))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("해당 상품이 없습니다.");
+    }
+
+    @Test
+    void modifyStoreGoods_교차_스토어_수정_실패() {
+        // Store A 생성 (admin: testUser) 및 상품 추가
+        StoreResponse storeA = storeService.createStore(
+                createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)),
+                testUser.getId());
+        Animation animation = animationRepository.save(animation("슬램덩크"));
+        Goods goods = goodsRepository.save(Goods.builder()
+                .name("포토카드")
+                .animation(animation)
+                .build());
+        AddExistingStoreGoodsRequest addRequest = new AddExistingStoreGoodsRequest(
+                goods.getId(), 5000, 12);
+        StoreGoodsResponse storeGoods = storeService.createStoreGoods(addRequest, testUser.getId(), storeA.id());
+
+        // 다른 유저가 소유한 Store B 생성
+        User otherAdmin = User.builder()
+                .email("other-admin@example.com")
+                .password("password")
+                .role(UserRole.STORE)
+                .name("other-admin")
+                .build();
+        userRepository.save(otherAdmin);
+        StoreResponse storeB = storeService.createStore(
+                createStoreRequest(LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31)),
+                otherAdmin.getId());
+
+        // testUser가 Store B의 goods 수정 시도 → 수정 권한 없음
+        Assertions.assertThatThrownBy(() ->
+                storeService.modifyStoreGoods(storeB.id(), storeGoods.id(),
+                        new UpdateStoreGoodsRequest(6000, 15, null), testUser.getId()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("수정 권한이 없습니다.");
+    }
+
+    @Test
+    void deleteStoreGoods_교차_스토어_삭제_실패() {
+        // Store A 생성 (admin: testUser) 및 상품 추가
+        StoreResponse storeA = storeService.createStore(
+                createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)),
+                testUser.getId());
+        Animation animation = animationRepository.save(animation("슬램덩크"));
+        Goods goods = goodsRepository.save(Goods.builder()
+                .name("포토카드")
+                .animation(animation)
+                .build());
+        AddExistingStoreGoodsRequest addRequest = new AddExistingStoreGoodsRequest(
+                goods.getId(), 5000, 12);
+        StoreGoodsResponse storeGoods = storeService.createStoreGoods(addRequest, testUser.getId(), storeA.id());
+
+        // 다른 유저가 소유한 Store B 생성
+        User otherAdmin = User.builder()
+                .email("other-admin2@example.com")
+                .password("password")
+                .role(UserRole.STORE)
+                .name("other-admin2")
+                .build();
+        userRepository.save(otherAdmin);
+        StoreResponse storeB = storeService.createStore(
+                createStoreRequest(LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31)),
+                otherAdmin.getId());
+
+        // testUser가 Store B의 goods 삭제 시도 → 삭제 권한 없음
+        Assertions.assertThatThrownBy(() ->
+                storeService.deleteStoreGoods(storeB.id(), storeGoods.id(), testUser.getId()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("삭제 권한이 없습니다.");
+    }
+
+    @Test
+    void getStoreDetail_비관리자_접근_거부() {
+        StoreResponse store = storeService.createStore(
+                createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)),
+                testUser.getId());
+
+        User regularUser = User.builder()
+                .email("regular@example.com")
+                .password("password")
+                .role(UserRole.USER)
+                .name("regular")
+                .build();
+        userRepository.save(regularUser);
+
+        Assertions.assertThatThrownBy(() ->
+                storeService.getStoreDetail(store.id(), regularUser.getId()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("상세 정보 조회 권한이 없습니다.");
     }
 
     private CreateStoreRequest createStoreRequest(LocalDate startDate, LocalDate endDate) {

@@ -210,6 +210,7 @@ public class StoreService {
     public StoreGoodsResponse modifyStoreGoods(Long storeId, Long storeGoodsId, UpdateStoreGoodsRequest request, Long userId) {
         // 유저 권한 확인
         validateStoreAdmin(userId, storeId, "수정 권한이 없습니다.");
+        validateStoreGoods(storeId, storeGoodsId);
 
         StoreGoods storeGoods = storeGoodsRepository.findWithGoodsById(storeGoodsId).orElseThrow(() -> new IllegalArgumentException("해당 상품이 없습니다."));
 
@@ -223,6 +224,7 @@ public class StoreService {
     public void deleteStoreGoods(Long storeId, Long storeGoodsId, Long userId) {
         // 유저 권한 확인
         validateStoreAdmin(userId, storeId, "삭제 권한이 없습니다.");
+        validateStoreGoods(storeId, storeGoodsId);
 
         StoreGoods storeGoods = storeGoodsRepository.findWithGoodsById(storeGoodsId).orElseThrow(() -> new IllegalArgumentException("해당 상품이 없습니다."));
         storeGoodsRepository.delete(storeGoods);
@@ -239,11 +241,13 @@ public class StoreService {
         return StoreResponse.from(store);
     }
 
-    public StoreDetailResponse getStoreDetail(Long storeId) {
+    public StoreDetailResponse getStoreDetail(Long storeId, Long userId) {
         // store 존재 확인
         if(!storeRepository.existsById(storeId)) {
             throw new NotFoundException("존재하지 않는 스토어입니다. id=" + storeId);
         }
+        validateStoreAdmin(userId, storeId, "상세 정보 조회 권한이 없습니다.");
+
         return storeRepository.getStoreDetail(storeId);
     }
 

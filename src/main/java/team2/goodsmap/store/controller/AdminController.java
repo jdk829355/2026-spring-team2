@@ -126,9 +126,10 @@ public class AdminController {
 
     @GetMapping("/{storeId}")
     public ResponseEntity<ApiResponse<StoreDetailResponse>> getStoreDetail(
-            @PathVariable Long storeId
+            @PathVariable Long storeId,
+            @AuthenticationPrincipal Long userId
     ){
-        StoreDetailResponse storeDetail = storeService.getStoreDetail(storeId);
+        StoreDetailResponse storeDetail = storeService.getStoreDetail(storeId, userId);
         return ResponseEntity.ok(ApiResponse.success(storeDetail));
     }
 

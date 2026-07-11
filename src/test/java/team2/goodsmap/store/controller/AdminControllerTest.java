@@ -491,7 +491,7 @@ class AdminControllerTest {
         given(jwtTokenProvider.getUserId(token)).willReturn(1L);
         given(jwtTokenProvider.getRole(token)).willReturn("STORE");
 
-        given(storeService.getStoreDetail(1L)).willReturn(response);
+        given(storeService.getStoreDetail(1L, 1L)).willReturn(response);
 
         mockMvc.perform(get("/api/v1/stores/1")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
@@ -504,7 +504,7 @@ class AdminControllerTest {
                 .andExpect(jsonPath("$.data.address").value("서울특별시 마포구 양화로 188"))
                 .andExpect(jsonPath("$.data.goodsCount").value(5));
 
-        verify(storeService).getStoreDetail(1L);
+        verify(storeService).getStoreDetail(1L, 1L);
     }
 
     @Test
@@ -516,7 +516,7 @@ class AdminControllerTest {
         given(jwtTokenProvider.getUserId(token)).willReturn(1L);
         given(jwtTokenProvider.getRole(token)).willReturn("STORE");
 
-        given(storeService.getStoreDetail(999L))
+        given(storeService.getStoreDetail(999L, 1L))
                 .willThrow(new NotFoundException("존재하지 않는 스토어입니다. id=999"));
 
         mockMvc.perform(get("/api/v1/stores/999")

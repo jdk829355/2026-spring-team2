@@ -82,12 +82,12 @@ public class Store {
             this.startDate = startDate;
             this.endDate = endDate;
         } else if (startDate != null) {
-            if (startDate.isAfter(this.endDate)) {
+            if (this.endDate != null && startDate.isAfter(this.endDate)) {
                 throw new IllegalArgumentException("시작일은 종료일보다 늦을 수 없습니다.");
             }
             this.startDate = startDate;
         } else if (endDate != null) {
-            if (endDate.isBefore(this.startDate)) {
+            if (this.startDate != null && endDate.isBefore(this.startDate)) {
                 throw new IllegalArgumentException("시작일은 종료일보다 늦을 수 없습니다.");
             }
             this.endDate = endDate;
