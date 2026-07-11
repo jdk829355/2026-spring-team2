@@ -12,3 +12,8 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.H2Dialect
+
+# Test 프로파일 전용 JWT secret (운영/기본 설정 영향 없음)
+# Base64-encoded 53-byte string → decoded ≥ 32 bytes, JJWT HS256 최소 요구 충족
+jwt:
+  secret: dGhpcy1pcy1hLXRlc3Qtand0LXNlY3JldC1rZXktZm9yLWxvY2FsLWRldmVsb3BtZW50LW9ubHk=
