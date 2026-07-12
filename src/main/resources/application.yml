@@ -44,3 +44,8 @@ management:
     web:
       exposure:
         include: health, info, metrics, loggers
+
+kakao:
+  local:
+    base-url: ${KAKAO_LOCAL_BASE_URL}
+    rest-api-key: ${KAKAO_LOCAL_REST_API_KEY}

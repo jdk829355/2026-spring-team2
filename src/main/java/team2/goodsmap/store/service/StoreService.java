@@ -4,11 +4,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import team2.goodsmap.global.exception.NotFoundException;
+import team2.goodsmap.global.location.dto.KakaoAddressSearchResponse;
+import team2.goodsmap.global.location.service.KakaoGeocodingService;
 import team2.goodsmap.global.util.GeoUtils;
 import team2.goodsmap.goods.dto.GoodsResponse;
 import team2.goodsmap.goods.repository.GoodsRepository;
 import team2.goodsmap.store.dto.request.*;
 import team2.goodsmap.store.dto.response.*;
+import team2.goodsmap.store.dto.util.LatLng;
 import team2.goodsmap.store.entity.Store;
 import team2.goodsmap.store.entity.StoreAdmin;
 import team2.goodsmap.store.entity.StoreGoods;
@@ -35,6 +38,7 @@ public class StoreService {
     private final UserRepository userRepository;
     private final StoreGoodsRepository storeGoodsRepository;  //
     private final GoodsRepository goodsRepository;
+    private final KakaoGeocodingService kakaoGeocodingService;
 
 
     public StoreResponse createStore(CreateStoreRequest request, Long userId) {
@@ -44,6 +48,8 @@ public class StoreService {
                 () -> new IllegalArgumentException("사용자가 없습니다.")
         );
 
+        LatLng latLng = addressToLatLng(request.address());
+
         Store store = Store.builder()
                 .name(request.name())
                 .description(request.description())
@@ -51,8 +57,8 @@ public class StoreService {
                 .startDate(request.startDate())
                 .endDate(request.endDate())
                 .address(request.address())
-                .lat(request.lat())
-                .lng(request.lng())
+                .lat(latLng.lat())
+                .lng(latLng.lng())
                 .build();
 
         StoreAdmin storeAdmin = StoreAdmin.builder()
@@ -235,7 +241,13 @@ public class StoreService {
         validateStoreAdmin(userId, storeId, "수정 권한이 없습니다.");
         // Store 업데이트 로직
         Store store = storeRepository.findById(storeId).orElseThrow(() -> new IllegalArgumentException("해당 스토어가 없습니다."));
-        store.update(request.name(), request.description(), request.type(), request.startDate(), request.endDate(), request.address(), request.lat(), request.lng());
+
+        LatLng latLng = null;
+        if(request.address() != null) {
+            latLng = addressToLatLng(request.address());
+        }
+
+        store.update(request.name(), request.description(), request.type(), request.startDate(), request.endDate(), request.address(), latLng != null ? latLng.lat() : null, latLng != null ? latLng.lng() : null);
 
         storeRepository.save(store);
         return StoreResponse.from(store);
@@ -258,6 +270,14 @@ public class StoreService {
         StoreGoods storeGoods = storeGoodsRepository.findById(storeGoodsId).orElseThrow(() -> new IllegalArgumentException("해당 상품이 없습니다."));
         storeGoods.updateImagePath(request.imagePath());
         storeGoodsRepository.save(storeGoods);
+    }
+
+    private LatLng addressToLatLng(String addr){
+        List<KakaoAddressSearchResponse.Document> addressSearchResponse = kakaoGeocodingService.searchAddress(addr).documents();
+        if (addressSearchResponse.isEmpty()) {
+            throw new IllegalArgumentException("주소를 찾을 수 없습니다.");
+        }
+        return LatLng.from(addressSearchResponse.getFirst());
     }
 
     // 재고 조회(Public) 3개 메서드

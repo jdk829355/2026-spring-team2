@@ -13,8 +13,6 @@ public record UpdateStoreRequest(
         StoreType type,
         LocalDate startDate,
         LocalDate endDate,
-        String address,
-        BigDecimal lat,
-        BigDecimal lng
+        String address
 ) {
 }
