@@ -1,5 +1,6 @@
 package team2.goodsmap.planner.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -23,7 +24,7 @@ public class PlannerController {
     @PostMapping
     public ResponseEntity<ApiResponse<PlannerResponse>> createPlanner(
             @AuthenticationPrincipal Long userId,
-            @RequestBody PlannerCreateRequest request) {
+            @Valid @RequestBody PlannerCreateRequest request) {
         PlannerResponse response = plannerService.createPlanner(userId, request);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -49,7 +50,7 @@ public class PlannerController {
     public ResponseEntity<ApiResponse<PlannerResponse>> updatePlanner(
             @AuthenticationPrincipal Long userId,
             @PathVariable Long plannerId,
-            @RequestBody PlannerUpdateRequest request) {
+            @Valid @RequestBody PlannerUpdateRequest request) {
         PlannerResponse response = plannerService.updatePlanner(userId, plannerId, request);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
