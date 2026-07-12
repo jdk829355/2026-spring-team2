@@ -1,20 +1,18 @@
 package team2.goodsmap.store.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.hibernate.engine.spi.Status;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import team2.goodsmap.global.common.ApiResponse;
+import team2.goodsmap.global.s3.S3Service;
 import team2.goodsmap.goods.dto.GoodsResponse;
 import team2.goodsmap.goods.service.GoodsService;
-import team2.goodsmap.store.dto.request.AddExistingStoreGoodsRequest;
-import team2.goodsmap.store.dto.request.AddNewStoreGoodsRequest;
-import team2.goodsmap.store.dto.request.AddStoreAdminRequest;
-import team2.goodsmap.store.dto.request.CreateStoreRequest;
-import team2.goodsmap.store.dto.response.StoreAdminResponse;
-import team2.goodsmap.store.dto.response.StoreGoodsResponse;
-import team2.goodsmap.store.dto.response.StoreResponse;
+import team2.goodsmap.store.dto.request.*;
+import team2.goodsmap.store.dto.response.*;
 import team2.goodsmap.store.service.StoreService;
 
 import java.util.List;
@@ -25,6 +23,7 @@ import java.util.List;
 public class AdminController {
     private final StoreService storeService;
     private final GoodsService goodsService;
+    private final S3Service s3Service;
 
     @GetMapping("/admin")
     public ResponseEntity<ApiResponse<List<StoreResponse>>> getStores(
@@ -92,5 +91,80 @@ public class AdminController {
     ){
         StoreGoodsResponse storeGoods = storeService.createStoreGoods(request, userId, storeId);
         return ResponseEntity.ok(ApiResponse.success(storeGoods));
+    }
+
+    @PatchMapping("/{storeId}/goods/{storeGoodsId}")
+    public ResponseEntity<ApiResponse<StoreGoodsResponse>> modifyStoreGoods(
+            @PathVariable Long storeId,
+            @PathVariable Long storeGoodsId,
+            @Valid @RequestBody UpdateStoreGoodsRequest request,
+            @AuthenticationPrincipal Long userId
+    ){
+        StoreGoodsResponse storeGoods = storeService.modifyStoreGoods(storeId, storeGoodsId, request, userId);
+        return ResponseEntity.ok(ApiResponse.success(storeGoods));
+    }
+
+    @DeleteMapping("/{storeId}/goods/{storeGoodsId}")
+    public ResponseEntity<ApiResponse<Void>> deleteStoreGoods(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long storeId,
+            @PathVariable Long storeGoodsId
+    ){
+        storeService.deleteStoreGoods(storeId, storeGoodsId, userId);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    @PatchMapping("/{storeId}")
+    public ResponseEntity<ApiResponse<StoreResponse>> updateStore(
+            @PathVariable Long storeId,
+            @Valid @RequestBody UpdateStoreRequest request,
+            @AuthenticationPrincipal Long userId
+    ){
+        StoreResponse store = storeService.updateStore(request, storeId, userId);
+        return ResponseEntity.ok(ApiResponse.success(store));
+    }
+
+    @GetMapping("/{storeId}")
+    public ResponseEntity<ApiResponse<StoreDetailResponse>> getStoreDetail(
+            @PathVariable Long storeId,
+            @AuthenticationPrincipal Long userId
+    ){
+        StoreDetailResponse storeDetail = storeService.getStoreDetail(storeId, userId);
+        return ResponseEntity.ok(ApiResponse.success(storeDetail));
+    }
+
+    @PostMapping("/{storeId}/goods/{storeGoodsId}/presigned-url")
+    public ResponseEntity<
+            ApiResponse<PresignedUploadResponse>
+            > createPresignedUrl(
+            @AuthenticationPrincipal Long userId,
+            @RequestBody PresignedUploadRequest request,
+            @PathVariable Long storeId,
+            @PathVariable Long storeGoodsId
+    ) {
+        storeService.validateStoreAdmin(userId, storeId, "관리 권한이 없습니다.");
+        storeService.validateStoreGoods(storeId, storeGoodsId);
+
+        PresignedUploadResponse response =
+                s3Service.createUploadUrl(
+                        storeId,
+                        storeGoodsId,
+                        request
+                );
+
+        return ResponseEntity.ok(
+                ApiResponse.success(response)
+        );
+    }
+
+    @PutMapping("/{storeId}/goods/{storeGoodsId}/image-path")
+    public ResponseEntity<ApiResponse<Void>> updateStoreGoodsImagePath(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long storeId,
+            @PathVariable Long storeGoodsId,
+            @Valid @RequestBody AddImagePathRequest request
+    ) {
+        storeService.updateImagePath(userId, storeId, storeGoodsId, request);
+        return ResponseEntity.ok(ApiResponse.success());
     }
 }
