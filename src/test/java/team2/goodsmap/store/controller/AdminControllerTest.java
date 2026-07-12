@@ -140,9 +140,7 @@ class AdminControllerTest {
                 StoreType.POPUP,
                 LocalDate.now(),
                 LocalDate.now().plusDays(1),
-                "서울특별시 마포구 양화로 188",
-                BigDecimal.valueOf(37.557743),
-                BigDecimal.valueOf(126.926487)
+                "서울특별시 마포구 양화로 188"
         );
 
         given(jwtTokenProvider.validateToken(token)).willReturn(true);
@@ -168,9 +166,7 @@ class AdminControllerTest {
                 StoreType.POPUP,
                 LocalDate.now(),
                 LocalDate.now().plusDays(1),
-                "",
-                BigDecimal.valueOf(37.557743),
-                BigDecimal.valueOf(126.926487)
+                ""
         );
 
         given(jwtTokenProvider.validateToken(token)).willReturn(true);
@@ -423,7 +419,7 @@ class AdminControllerTest {
         UpdateStoreRequest request = new UpdateStoreRequest(
                 "수정된 이름", "수정된 설명", StoreType.POPUP,
                 LocalDate.of(2025, 6, 1), LocalDate.of(2025, 6, 30),
-                "변경된 주소", BigDecimal.valueOf(37.5), BigDecimal.valueOf(127.0)
+                "변경된 주소"
         );
         StoreResponse response =
                 new StoreResponse(1L, "수정된 이름", "수정된 설명", StoreType.POPUP,
@@ -456,7 +452,7 @@ class AdminControllerTest {
     void 스토어_수정_권한_없음_400() throws Exception {
         String token = "test-access-token";
         UpdateStoreRequest request = new UpdateStoreRequest(
-                "수정된 이름", null, null, null, null, null, null, null
+                "수정된 이름", null, null, null, null, null
         );
 
         given(jwtTokenProvider.validateToken(token)).willReturn(true);
@@ -619,9 +615,7 @@ class AdminControllerTest {
                 StoreType.POPUP,
                 startDate,
                 endDate,
-                "서울특별시 마포구 양화로 188",
-                BigDecimal.valueOf(37.557743),
-                BigDecimal.valueOf(126.926487)
+                "서울특별시 마포구 양화로 188"
         );
     }
 }

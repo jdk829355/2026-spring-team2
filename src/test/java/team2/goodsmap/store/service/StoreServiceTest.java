@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
 import team2.goodsmap.goods.dto.GoodsResponse;
 import team2.goodsmap.goods.entity.Animation;
@@ -14,6 +15,8 @@ import team2.goodsmap.goods.entity.Goods;
 import team2.goodsmap.goods.repository.AnimationRepository;
 import team2.goodsmap.goods.repository.GoodsRepository;
 import team2.goodsmap.global.exception.NotFoundException;
+import team2.goodsmap.global.location.dto.KakaoAddressSearchResponse;
+import team2.goodsmap.global.location.service.KakaoGeocodingService;
 import team2.goodsmap.store.dto.request.*;
 import team2.goodsmap.store.dto.response.StoreAdminResponse;
 import team2.goodsmap.store.dto.response.StoreDetailResponse;
@@ -29,6 +32,9 @@ import team2.goodsmap.user.repository.UserRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.BDDMockito.given;
 
 @DataJpaTest
 @Import(StoreService.class)
@@ -46,6 +52,9 @@ class StoreServiceTest {
     @Autowired
     private StoreGoodsRepository storeGoodsRepository;
 
+    @MockitoBean
+    private KakaoGeocodingService kakaoGeocodingService;
+
     private User testUser;
 
     @BeforeEach
@@ -58,6 +67,16 @@ class StoreServiceTest {
                 .build();
 
         userRepository.save(testUser);
+
+        // geocoding mock: 도로명 주소 → 위경도 응답
+        given(kakaoGeocodingService.searchAddress(anyString()))
+                .willReturn(new KakaoAddressSearchResponse(List.of(
+                        new KakaoAddressSearchResponse.Document(
+                                "서울특별시 마포구 양화로 188",
+                                "126.926487",
+                                "37.557743"
+                        )
+                )));
     }
 
     @Test
@@ -374,7 +393,7 @@ class StoreServiceTest {
         UpdateStoreRequest request = new UpdateStoreRequest(
                 "수정된 이름", "수정된 설명", StoreType.POPUP,
                 LocalDate.of(2025, 6, 1), LocalDate.of(2025, 6, 30),
-                "변경된 주소", BigDecimal.valueOf(37.5), BigDecimal.valueOf(127.0)
+                "변경된 주소"
         );
 
         StoreResponse updated = storeService.updateStore(request, store.id(), testUser.getId());
@@ -384,8 +403,8 @@ class StoreServiceTest {
         Assertions.assertThat(updated.startDate()).isEqualTo(LocalDate.of(2025, 6, 1));
         Assertions.assertThat(updated.endDate()).isEqualTo(LocalDate.of(2025, 6, 30));
         Assertions.assertThat(updated.address()).isEqualTo("변경된 주소");
-        Assertions.assertThat(updated.lat()).isEqualByComparingTo(BigDecimal.valueOf(37.5));
-        Assertions.assertThat(updated.lng()).isEqualByComparingTo(BigDecimal.valueOf(127.0));
+        Assertions.assertThat(updated.lat()).isEqualByComparingTo(BigDecimal.valueOf(37.557743));
+        Assertions.assertThat(updated.lng()).isEqualByComparingTo(BigDecimal.valueOf(126.926487));
     }
 
     @Test
@@ -403,7 +422,7 @@ class StoreServiceTest {
         userRepository.save(otherUser);
 
         UpdateStoreRequest request = new UpdateStoreRequest(
-                "수정된 이름", null, null, null, null, null, null, null
+                "수정된 이름", null, null, null, null, null
         );
 
         Assertions.assertThatThrownBy(() ->
@@ -421,7 +440,7 @@ class StoreServiceTest {
         UpdateStoreRequest request = new UpdateStoreRequest(
                 null, null, null,
                 LocalDate.of(2025, 12, 31), LocalDate.of(2025, 1, 1),
-                null, null, null
+                null
         );
 
         Assertions.assertThatThrownBy(() ->
@@ -439,7 +458,7 @@ class StoreServiceTest {
         UpdateStoreRequest request = new UpdateStoreRequest(
                 null, null, null,
                 LocalDate.of(2024, 1, 1), null,  // 기존 endDate(2023-12-31)보다 늦음
-                null, null, null
+                null
         );
 
         Assertions.assertThatThrownBy(() ->
@@ -457,7 +476,7 @@ class StoreServiceTest {
         UpdateStoreRequest request = new UpdateStoreRequest(
                 null, null, null,
                 null, LocalDate.of(2023, 5, 31),  // 기존 startDate(2023-06-01)보다 빠름
-                null, null, null
+                null
         );
 
         Assertions.assertThatThrownBy(() ->
@@ -499,7 +518,7 @@ class StoreServiceTest {
         UpdateStoreRequest request = new UpdateStoreRequest(
                 null, null, null,
                 null, LocalDate.of(2025, 12, 31),
-                null, null, null
+                null
         );
 
         StoreResponse updated = storeService.updateStore(request, store.id(), testUser.getId());
@@ -674,9 +693,7 @@ class StoreServiceTest {
                 StoreType.POPUP,
                 startDate,
                 endDate,
-                "서울특별시 마포구 양화로 188",
-                BigDecimal.valueOf(37.557743),
-                BigDecimal.valueOf(126.926487)
+                "서울특별시 마포구 양화로 188"
         );
     }
 
