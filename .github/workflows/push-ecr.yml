@@ -1,4 +1,4 @@
-name: Build and Push to ECR
+name: Build and Deploy
 
 on:
   push:
@@ -10,63 +10,57 @@ permissions:
   id-token: write
 
 concurrency:
-  group: ecr-${{ github.ref }}
-  cancel-in-progress: true
+  group: production-deploy
+  cancel-in-progress: false
 
 jobs:
-  build-and-push:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v6
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up Java
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "21"
           cache: gradle
 
-      - name: Grant execute permission to Gradle wrapper
-        run: chmod +x gradlew
-
       - name: Run tests
-        run: ./gradlew test --no-daemon
+        run: |
+          chmod +x gradlew
+          ./gradlew test --no-daemon
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6.1.0
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
 
       - name: Log in to Amazon ECR
-        id: login-ecr
+        id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and push Docker image
+      - name: Build and push image
         id: image
         env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
           ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
+          IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
           docker build \
-            --tag "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
-            --tag "$ECR_REGISTRY/$ECR_REPOSITORY:latest" \
+            --platform linux/amd64 \
+            --tag "$IMAGE_URI" \
             .
 
-          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+          docker push "$IMAGE_URI"
 
-      - name: Print pushed image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          echo "Pushed image:"
-          echo "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          echo "uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
+
       - name: Deploy to EC2 through SSM
         id: deploy
         env:
@@ -82,10 +76,10 @@ jobs:
             --parameters "commands=[\"sudo /opt/goodsmap/deploy.sh '$IMAGE_URI'\"]" \
             --query "Command.CommandId" \
             --output text)
-          
+
           echo "command_id=$COMMAND_ID" >> "$GITHUB_OUTPUT"
           echo "SSM command ID: $COMMAND_ID"
-          
+
           aws ssm wait command-executed \
             --region "$AWS_REGION" \
             --command-id "$COMMAND_ID" \
