@@ -66,3 +66,44 @@ jobs:
         run: |
           echo "Pushed image:"
           echo "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+      - name: Deploy to EC2 through SSM
+        id: deploy
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
+          IMAGE_URI: ${{ steps.image.outputs.uri }}
+        run: |
+          COMMAND_ID=$(aws ssm send-command \
+            --region "$AWS_REGION" \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Deploy commit $GITHUB_SHA" \
+            --parameters "commands=[\"sudo /opt/goodsmap/deploy.sh '$IMAGE_URI'\"]" \
+            --query "Command.CommandId" \
+            --output text)
+          
+          echo "command_id=$COMMAND_ID" >> "$GITHUB_OUTPUT"
+          echo "SSM command ID: $COMMAND_ID"
+          
+          aws ssm wait command-executed \
+            --region "$AWS_REGION" \
+            --command-id "$COMMAND_ID" \
+            --instance-id "$INSTANCE_ID"
+
+      - name: Print deployment result
+        if: always() && steps.deploy.outputs.command_id != ''
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
+          COMMAND_ID: ${{ steps.deploy.outputs.command_id }}
+        run: |
+          aws ssm get-command-invocation \
+            --region "$AWS_REGION" \
+            --command-id "$COMMAND_ID" \
+            --instance-id "$INSTANCE_ID" \
+            --query '{
+              Status: Status,
+              ExitCode: ResponseCode,
+              Output: StandardOutputContent,
+              Error: StandardErrorContent
+            }'

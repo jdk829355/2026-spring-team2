@@ -1,0 +1,78 @@
+services:
+  app:
+    image: ${APP_IMAGE}
+    container_name: goodsmap-app
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    expose:
+      - "8080"
+
+    networks:
+      - goodsmap-network
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q --spider http://localhost:8080/actuator/health || exit 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: goodsmap-nginx
+    restart: unless-stopped
+
+    depends_on:
+      app:
+        condition: service_healthy
+
+    ports:
+      - "80:80"
+      - "443:443"
+
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+
+      # HTTPS 적용 후 인증서 마운트
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+
+      # Certbot webroot 인증용
+      - /var/www/certbot:/var/www/certbot:ro
+
+    networks:
+      - goodsmap-network
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q --spider http://localhost/nginx-health || exit 1"
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  goodsmap-network:
+    name: goodsmap-network
+    driver: bridge
