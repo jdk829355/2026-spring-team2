@@ -4,7 +4,9 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import team2.goodsmap.global.config.JpaAuditingConfig;
 import team2.goodsmap.store.entity.Store;
 import team2.goodsmap.store.entity.StoreAdmin;
 import team2.goodsmap.store.enums.StoreType;
@@ -15,6 +17,7 @@ import team2.goodsmap.user.repository.UserRepository;
 import java.math.BigDecimal;
 
 @DataJpaTest
+@Import(JpaAuditingConfig.class)
 @ActiveProfiles("test")
 class StoreRepositoryTest {
 

@@ -4,10 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import team2.goodsmap.global.common.ApiResponse;
-import team2.goodsmap.user.dto.request.BusinessSignupRequest;
-import team2.goodsmap.user.dto.request.LoginRequest;
-import team2.goodsmap.user.dto.request.MemberSignupRequest;
-import team2.goodsmap.user.dto.request.ReissueRequest;
+import team2.goodsmap.user.dto.request.*;
 import team2.goodsmap.user.dto.response.LoginResponse;
 import team2.goodsmap.user.service.AuthService;
 
@@ -39,6 +36,13 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(isDuplicated));
     }
 
+    // 이메일 인증번호 확인
+    @PostMapping("/verify-email")
+    public ResponseEntity<ApiResponse<Void>> verifyEmail(@RequestBody VerifyEmailRequest request) {
+        authService.verifyEmail(request.getEmail(), request.getAuthCode());
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
     // 개인 로그인
     @PostMapping("/login/member")
     public ResponseEntity<ApiResponse<LoginResponse>> loginMember(@RequestBody LoginRequest request) {
@@ -58,12 +62,5 @@ public class AuthController {
     public ResponseEntity<ApiResponse<LoginResponse>> reissue(@RequestBody ReissueRequest request) {
         LoginResponse response = authService.reissue(request.getRefreshToken());
         return ResponseEntity.ok(ApiResponse.success(response));
-    }
-
-    // 로그아웃
-    @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<Void>> logout() {
-        authService.logout();
-        return ResponseEntity.ok(ApiResponse.success());
     }
 }

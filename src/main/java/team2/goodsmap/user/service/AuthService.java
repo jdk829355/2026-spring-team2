@@ -13,6 +13,8 @@ import team2.goodsmap.user.entity.User;
 import team2.goodsmap.user.enums.UserRole;
 import team2.goodsmap.user.repository.UserRepository;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -21,13 +23,14 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final EmailService emailService;
 
     // 개인 회원가입 요청
     @Transactional
     public void signupMember(MemberSignupRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
-        }
+        validateAndCleanupExpiredEmail(request.getEmail());
+
+        String authCode = emailService.generateAuthCode();
 
         User user = User.builder()
                 .name(request.getName())
@@ -36,16 +39,17 @@ public class AuthService {
                 .role(UserRole.USER)
                 .build();
 
+        user.setAuthCode(authCode, LocalDateTime.now().plusMinutes(2));
         userRepository.save(user);
-        // TODO: 이메일 인증번호 발송
+        emailService.sendAuthCode(request.getEmail(), authCode);
     }
 
     // 업체 회원가입 요청
     @Transactional
     public void signupBusiness(BusinessSignupRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
-        }
+        validateAndCleanupExpiredEmail(request.getEmail());
+
+        String authCode = emailService.generateAuthCode();
 
         User user = User.builder()
                 .name(request.getName())
@@ -54,8 +58,9 @@ public class AuthService {
                 .role(UserRole.STORE)
                 .build();
 
+        user.setAuthCode(authCode, LocalDateTime.now().plusMinutes(2));
         userRepository.save(user);
-        // TODO: store 생성 + store_admin 연결 + 이메일 인증번호 발송
+        emailService.sendAuthCode(request.getEmail(), authCode);
     }
 
     // 이메일 중복 확인
@@ -63,16 +68,48 @@ public class AuthService {
         return userRepository.existsByEmail(email);
     }
 
+    @Transactional
+    public void verifyEmail(String email, String authCode) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        if (user.getAuthCode() == null) {
+            throw new IllegalArgumentException("인증번호를 먼저 요청해주세요.");
+        }
+
+        if (LocalDateTime.now().isAfter(user.getAuthCodeExpiredAt())) {
+            throw new IllegalArgumentException("인증번호가 만료되었습니다.");
+        }
+
+        if (!user.getAuthCode().equals(authCode)) {
+            throw new IllegalArgumentException("인증번호가 올바르지 않습니다.");
+        }
+
+        user.verify();
+    }
+
+    private void validateAndCleanupExpiredEmail(String email) {
+        userRepository.findByEmail(email).ifPresent(existingUser -> {
+            if (existingUser.isVerified()) {
+                throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
+            }
+            if (existingUser.getAuthCodeExpiredAt() != null
+                    && LocalDateTime.now().isBefore(existingUser.getAuthCodeExpiredAt())) {
+                throw new IllegalArgumentException("이미 인증 대기 중인 이메일입니다. 잠시 후 다시 시도해주세요.");
+            }
+            // 인증 안 됐고, 인증코드도 만료됨 → 즉시 재가입 허용
+            userRepository.delete(existingUser);
+        });
+    }
+
     // 개인/업체 로그인
     public LoginResponse login(LoginRequest request) {
         User user = userRepository.findByEmailAndRole(request.getEmail(), request.getRole())
                 .orElseThrow(() -> new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다."));
 
-        /*
         if (!user.isVerified()) {
             throw new IllegalArgumentException("이메일 인증이 완료되지 않은 계정입니다.");
         }
-        */
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다.");
@@ -99,10 +136,5 @@ public class AuthService {
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
 
         return LoginResponse.of(newAccessToken, newRefreshToken);
-    }
-
-    // 로그아웃
-    public void logout() {
-
     }
 }
