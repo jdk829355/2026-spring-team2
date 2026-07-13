@@ -29,6 +29,12 @@ public class Planner {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    // 플래너 수정 (전달된 값만 변경)
+    public void update(String title, LocalDate date) {
+        if (title != null) this.title = title;
+        if (date != null) this.date = date;
+    }
+
     @Builder //'내가 살 것 담기'에서 추가 시 사용해야
     public Planner(String title, LocalDate date, User user) {
         this.title = title;
