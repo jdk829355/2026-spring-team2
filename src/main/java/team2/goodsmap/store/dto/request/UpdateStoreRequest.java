@@ -1,5 +1,7 @@
 package team2.goodsmap.store.dto.request;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import team2.goodsmap.store.enums.StoreType;
 
 import java.math.BigDecimal;
@@ -11,8 +13,6 @@ public record UpdateStoreRequest(
         StoreType type,
         LocalDate startDate,
         LocalDate endDate,
-        String address,
-        BigDecimal lat,
-        BigDecimal lng
+        String address
 ) {
 }

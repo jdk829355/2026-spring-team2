@@ -39,7 +39,8 @@ public class SecurityConfig {
                                 "/api/v1/auth/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
-                                "/v3/api-docs/**"
+                                "/v3/api-docs/**",
+                                "/actuator/**"
                         ).permitAll()
                         // 재고 도메인 - 조회(GET)는 로그인 없이도 열람 가능해야 함
                         .requestMatchers(HttpMethod.GET,

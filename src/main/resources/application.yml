@@ -45,3 +45,19 @@ springdoc:
   swagger-ui:
     persist-authorization: true
   default-produces-media-type: application/json
+
+aws:
+  region: ${AWS_REGION:ap-northeast-2}
+  s3:
+    bucket: ${AWS_S3_BUCKET:goodsmap-images}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, loggers
+
+kakao:
+  local:
+    base-url: ${KAKAO_LOCAL_BASE_URL}
+    rest-api-key: ${KAKAO_LOCAL_REST_API_KEY}

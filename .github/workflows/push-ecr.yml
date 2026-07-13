@@ -1,0 +1,104 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Run tests
+        run: |
+          chmod +x gradlew
+          ./gradlew test --no-daemon
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push image
+        id: image
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+          docker build \
+            --platform linux/amd64 \
+            --tag "$IMAGE_URI" \
+            .
+
+          docker push "$IMAGE_URI"
+
+          echo "uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy to EC2 through SSM
+        id: deploy
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
+          IMAGE_URI: ${{ steps.image.outputs.uri }}
+        run: |
+          COMMAND_ID=$(aws ssm send-command \
+            --region "$AWS_REGION" \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Deploy commit $GITHUB_SHA" \
+            --parameters "commands=[\"sudo /opt/goodsmap/deploy.sh '$IMAGE_URI'\"]" \
+            --query "Command.CommandId" \
+            --output text)
+
+          echo "command_id=$COMMAND_ID" >> "$GITHUB_OUTPUT"
+          echo "SSM command ID: $COMMAND_ID"
+
+          aws ssm wait command-executed \
+            --region "$AWS_REGION" \
+            --command-id "$COMMAND_ID" \
+            --instance-id "$INSTANCE_ID"
+
+      - name: Print deployment result
+        if: always() && steps.deploy.outputs.command_id != ''
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
+          COMMAND_ID: ${{ steps.deploy.outputs.command_id }}
+        run: |
+          aws ssm get-command-invocation \
+            --region "$AWS_REGION" \
+            --command-id "$COMMAND_ID" \
+            --instance-id "$INSTANCE_ID" \
+            --query '{
+              Status: Status,
+              ExitCode: ResponseCode,
+              Output: StandardOutputContent,
+              Error: StandardErrorContent
+            }'

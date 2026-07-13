@@ -4,14 +4,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import team2.goodsmap.global.exception.NotFoundException;
+import team2.goodsmap.global.location.dto.KakaoAddressSearchResponse;
+import team2.goodsmap.global.location.service.KakaoGeocodingService;
 import team2.goodsmap.global.util.GeoUtils;
 import team2.goodsmap.goods.dto.GoodsResponse;
 import team2.goodsmap.goods.repository.GoodsRepository;
-import team2.goodsmap.store.dto.request.AddExistingStoreGoodsRequest;
-import team2.goodsmap.store.dto.request.AddNewStoreGoodsRequest;
-import team2.goodsmap.store.dto.request.AddStoreAdminRequest;
-import team2.goodsmap.store.dto.request.CreateStoreRequest;
+import team2.goodsmap.store.dto.request.*;
 import team2.goodsmap.store.dto.response.*;
+import team2.goodsmap.store.dto.util.LatLng;
 import team2.goodsmap.store.entity.Store;
 import team2.goodsmap.store.entity.StoreAdmin;
 import team2.goodsmap.store.entity.StoreGoods;
@@ -38,6 +38,7 @@ public class StoreService {
     private final UserRepository userRepository;
     private final StoreGoodsRepository storeGoodsRepository;  //
     private final GoodsRepository goodsRepository;
+    private final KakaoGeocodingService kakaoGeocodingService;
 
 
     public StoreResponse createStore(CreateStoreRequest request, Long userId) {
@@ -47,6 +48,8 @@ public class StoreService {
                 () -> new IllegalArgumentException("사용자가 없습니다.")
         );
 
+        LatLng latLng = addressToLatLng(request.address());
+
         Store store = Store.builder()
                 .name(request.name())
                 .description(request.description())
@@ -54,8 +57,8 @@ public class StoreService {
                 .startDate(request.startDate())
                 .endDate(request.endDate())
                 .address(request.address())
-                .lat(request.lat())
-                .lng(request.lng())
+                .lat(latLng.lat())
+                .lng(latLng.lng())
                 .build();
 
         StoreAdmin storeAdmin = StoreAdmin.builder()
@@ -162,19 +165,29 @@ public class StoreService {
         storeAdminRepository.delete(target);
     }
 
+    // 유저가 해당 업체에 관리 권한이 있는지 체크
+    public void validateStoreAdmin(Long userId, Long storeId, String message) {
+        if (!storeAdminRepository.existsByUserIdAndStoreId(userId, storeId)) {
+            throw new IllegalArgumentException(message);
+        }
+    }
+
+    public void validateStoreGoods(Long storeId, Long storeGoodsId){
+        if (!storeGoodsRepository.existsByStoreIdAndStoreGoodsId(storeId, storeGoodsId)) {
+            throw new IllegalArgumentException("해당 상품이 없습니다.");
+        }
+    }
+
     // StoreGoods를 생성 (Goods도 새로 만든 경우) - POST /api/v1/stores/{storeId}/goods/new
     public StoreGoodsResponse createStoreGoods (AddNewStoreGoodsRequest request, GoodsResponse goodsResponse, Long userId, Long storeId) {
         // 업체 관리자 여부 확인
-        if (!storeAdminRepository.existsByUserIdAndStoreId(userId, storeId)){
-            throw new IllegalArgumentException("상품 추가 권한이 없습니다.");
-        }
+        validateStoreAdmin(userId, storeId, "상품 추가 권한이 없습니다.");
         // StoreGoods 생성
         StoreGoods storeGoods = StoreGoods.builder()
                 .price(request.price())
                 .stock(request.stock())
                 .goods(goodsRepository.findById(goodsResponse.id()).orElseThrow(() -> new IllegalArgumentException("상품이 없습니다.")))
                 .store(storeRepository.findById(storeId).orElseThrow(() -> new IllegalArgumentException("업체가 없습니다.")))
-                .imagePath(request.imagePath())
                 .build();
 
         storeGoodsRepository.save(storeGoods);
@@ -185,21 +198,86 @@ public class StoreService {
     // StoreGoods를 생성 (Goods가 기존에 있는 경우) - POST /api/v1/stores/{storeId}/goods
     public StoreGoodsResponse createStoreGoods (AddExistingStoreGoodsRequest request, Long userId, Long storeId) {
         // 업체 관리자 여부 확인
-        if (!storeAdminRepository.existsByUserIdAndStoreId(userId, storeId)){
-            throw new IllegalArgumentException("상품 추가 권한이 없습니다.");
-        }
+        validateStoreAdmin(userId, storeId, "상품 추가 권한이 없습니다.");
         // StoreGoods 생성
         StoreGoods storeGoods = StoreGoods.builder()
                 .price(request.price())
                 .stock(request.stock())
                 .goods(goodsRepository.findById(request.goodsId()).orElseThrow(() -> new IllegalArgumentException("상품이 없습니다.")))
                 .store(storeRepository.findById(storeId).orElseThrow(() -> new IllegalArgumentException("업체가 없습니다.")))
-                .imagePath(request.imagePath())
                 .build();
 
         storeGoodsRepository.save(storeGoods);
         // StoreGoodsResponse 반환
         return StoreGoodsResponse.from(storeGoods);
+    }
+
+    // 재고, 가격, 이미지 경로 수정 - PATCH /api/v1/stores/{storeId}/goods/{storeGoodsId}
+    public StoreGoodsResponse modifyStoreGoods(Long storeId, Long storeGoodsId, UpdateStoreGoodsRequest request, Long userId) {
+        // 유저 권한 확인
+        validateStoreAdmin(userId, storeId, "수정 권한이 없습니다.");
+        validateStoreGoods(storeId, storeGoodsId);
+
+        StoreGoods storeGoods = storeGoodsRepository.findWithGoodsById(storeGoodsId).orElseThrow(() -> new IllegalArgumentException("해당 상품이 없습니다."));
+
+        // 수정 로직
+        storeGoods.update(request.price(), request.stock(), request.imagePath());
+
+        storeGoodsRepository.save(storeGoods);
+        return StoreGoodsResponse.from(storeGoods);
+    }
+
+    public void deleteStoreGoods(Long storeId, Long storeGoodsId, Long userId) {
+        // 유저 권한 확인
+        validateStoreAdmin(userId, storeId, "삭제 권한이 없습니다.");
+        validateStoreGoods(storeId, storeGoodsId);
+
+        StoreGoods storeGoods = storeGoodsRepository.findWithGoodsById(storeGoodsId).orElseThrow(() -> new IllegalArgumentException("해당 상품이 없습니다."));
+        storeGoodsRepository.delete(storeGoods);
+    }
+
+    public StoreResponse updateStore(UpdateStoreRequest request, Long storeId, Long userId){
+        // 유저 권한 확인
+        validateStoreAdmin(userId, storeId, "수정 권한이 없습니다.");
+        // Store 업데이트 로직
+        Store store = storeRepository.findById(storeId).orElseThrow(() -> new IllegalArgumentException("해당 스토어가 없습니다."));
+
+        LatLng latLng = null;
+        if(request.address() != null) {
+            latLng = addressToLatLng(request.address());
+        }
+
+        store.update(request.name(), request.description(), request.type(), request.startDate(), request.endDate(), request.address(), latLng != null ? latLng.lat() : null, latLng != null ? latLng.lng() : null);
+
+        storeRepository.save(store);
+        return StoreResponse.from(store);
+    }
+
+    public StoreDetailResponse getStoreDetail(Long storeId, Long userId) {
+        // store 존재 확인
+        if(!storeRepository.existsById(storeId)) {
+            throw new NotFoundException("존재하지 않는 스토어입니다. id=" + storeId);
+        }
+        validateStoreAdmin(userId, storeId, "상세 정보 조회 권한이 없습니다.");
+
+        return storeRepository.getStoreDetail(storeId);
+    }
+
+    public void updateImagePath(Long userId, Long storeId, Long storeGoodsId, AddImagePathRequest request) {
+        validateStoreAdmin(userId, storeId, "이미지 경로 수정 권한이 없습니다.");
+        validateStoreGoods(storeId, storeGoodsId);
+
+        StoreGoods storeGoods = storeGoodsRepository.findById(storeGoodsId).orElseThrow(() -> new IllegalArgumentException("해당 상품이 없습니다."));
+        storeGoods.updateImagePath(request.imagePath());
+        storeGoodsRepository.save(storeGoods);
+    }
+
+    private LatLng addressToLatLng(String addr){
+        List<KakaoAddressSearchResponse.Document> addressSearchResponse = kakaoGeocodingService.searchAddress(addr).documents();
+        if (addressSearchResponse.isEmpty()) {
+            throw new IllegalArgumentException("주소를 찾을 수 없습니다.");
+        }
+        return LatLng.from(addressSearchResponse.getFirst());
     }
 
     // 재고 조회(Public) 3개 메서드
