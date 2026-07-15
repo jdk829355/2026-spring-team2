@@ -13,6 +13,8 @@ services:
     networks:
       - goodsmap-network
 
+    stop_grace_period: 30s
+
     healthcheck:
       test:
         [
