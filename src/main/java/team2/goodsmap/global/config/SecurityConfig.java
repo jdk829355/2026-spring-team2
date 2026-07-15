@@ -51,6 +51,7 @@ public class SecurityConfig {
                                 "/api/v1/goods/*",
                                 "/api/v1/stores",
                                 "/api/v1/stores/map",
+                                "/api/v1/stores/*",
                                 "/api/v1/stores/*/goods"
                         ).permitAll()
                         .anyRequest().authenticated()
@@ -65,8 +66,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(
-                "http://localhost:3000"
+        config.setAllowedOriginPatterns(List.of(
+                "http://localhost:3000",
+                "https://goodz-fe.vercel.app",
+                "https://*.vercel.app"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
