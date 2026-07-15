@@ -1,0 +1,75 @@
+spring:
+  # === 운영 DB 설정 ===
+  datasource:
+    hikari:
+      pool-name: GoodsmapHikariPool
+
+      # 작은 EC2 한 대에서 시작할 때의 보수적인 기본값
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:5}
+      minimum-idle: ${DB_POOL_MIN_IDLE:1}
+
+      # DB 커넥션을 얻지 못할 때 무한정 기다리지 않도록 설정
+      connection-timeout: ${DB_CONNECTION_TIMEOUT:5000}
+      validation-timeout: ${DB_VALIDATION_TIMEOUT:3000}
+
+  # === 운영 JPA 설정 ===
+  jpa:
+    hibernate:
+      # Hibernate가 운영 DB 스키마를 자동 변경하지 않음
+      # 엔티티와 실제 스키마가 다르면 애플리케이션 실행 실패
+      ddl-auto: validate
+
+    properties:
+      hibernate:
+        format_sql: false
+
+    show-sql: false
+
+  # SMTP 서버가 응답하지 않을 때 요청 스레드가 계속 대기하지 않도록 설정
+  mail:
+    properties:
+      "[mail.smtp.connectiontimeout]": 5000
+      "[mail.smtp.timeout]": 5000
+      "[mail.smtp.writetimeout]": 5000
+
+  # Docker가 SIGTERM을 보낼 때 진행 중인 요청 종료 유예 시간
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+
+server:
+  shutdown: graceful
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - health
+          - info
+
+  endpoint:
+    health:
+      # DB 주소나 내부 컴포넌트 상세 상태를 외부에 노출하지 않음
+      show-details: never
+
+springdoc:
+  # 운영 서버에서는 OpenAPI JSON과 Swagger UI 비활성화
+  api-docs:
+    enabled: false
+
+  swagger-ui:
+    enabled: false
+
+aws:
+  s3:
+    # 운영에서는 기본값 없이 반드시 환경변수가 존재하도록 설정
+    bucket: ${AWS_S3_BUCKET}
+
+logging:
+  level:
+    root: INFO
+
+    # SQL과 SQL 바인딩 파라미터 출력 중단
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: "OFF"
