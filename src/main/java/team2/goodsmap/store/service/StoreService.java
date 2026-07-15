@@ -272,7 +272,7 @@ public class StoreService {
         if(!storeRepository.existsById(storeId)) {
             throw new NotFoundException("존재하지 않는 스토어입니다. id=" + storeId);
         }
-        validateStoreAdmin(userId, storeId, "상세 정보 조회 권한이 없습니다.");
+        //validateStoreAdmin(userId, storeId, "상세 정보 조회 권한이 없습니다.");
 
         return storeRepository.getStoreDetail(storeId);
     }
