@@ -1,6 +1,7 @@
 package team2.goodsmap.store.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import team2.goodsmap.global.exception.NotFoundException;
@@ -25,6 +26,7 @@ import team2.goodsmap.user.repository.UserRepository;
 import java.util.Comparator;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -68,6 +70,7 @@ public class StoreService {
 
         storeRepository.save(store);
         storeAdminRepository.save(storeAdmin);
+        log.info("[스토어생성] userId={}, storeId={}", userId, store.getId());
         return StoreResponse.from(store);
     }
 
@@ -114,6 +117,8 @@ public class StoreService {
                 .build();
 
         storeAdminRepository.save(storeAdmin);
+        log.info("[관리자추가] actorUserId={}, storeId={}, newAdminId={}",
+                userId, storeId, user.getId());
         return StoreAdminResponse.from(storeAdmin);
     }
 
@@ -163,6 +168,8 @@ public class StoreService {
         }
 
         storeAdminRepository.delete(target);
+        log.info("[관리자삭제] actorUserId={}, storeId={}, storeAdminId={}",
+                userId, storeId, storeAdminId);
     }
 
     // 유저가 해당 업체에 관리 권한이 있는지 체크
@@ -191,6 +198,8 @@ public class StoreService {
                 .build();
 
         storeGoodsRepository.save(storeGoods);
+        log.info("[재고등록:신규상품] userId={}, storeId={}, storeGoodsId={}",
+                userId, storeId, storeGoods.getId());
         // StoreGoodsResponse 반환
         return StoreGoodsResponse.from(storeGoods);
     }
@@ -208,6 +217,8 @@ public class StoreService {
                 .build();
 
         storeGoodsRepository.save(storeGoods);
+        log.info("[재고등록:기존상품] userId={}, storeId={}, storeGoodsId={}, goodsId={}",
+                userId, storeId, storeGoods.getId(), request.goodsId());
         // StoreGoodsResponse 반환
         return StoreGoodsResponse.from(storeGoods);
     }
@@ -224,6 +235,7 @@ public class StoreService {
         storeGoods.update(request.price(), request.stock(), request.imagePath());
 
         storeGoodsRepository.save(storeGoods);
+        log.info("[재고수정] userId={}, storeId={}, storeGoodsId={}", userId, storeId, storeGoodsId);
         return StoreGoodsResponse.from(storeGoods);
     }
 
@@ -234,6 +246,7 @@ public class StoreService {
 
         StoreGoods storeGoods = storeGoodsRepository.findWithGoodsById(storeGoodsId).orElseThrow(() -> new IllegalArgumentException("해당 상품이 없습니다."));
         storeGoodsRepository.delete(storeGoods);
+        log.info("[재고삭제] userId={}, storeId={}, storeGoodsId={}", userId, storeId, storeGoodsId);
     }
 
     public StoreResponse updateStore(UpdateStoreRequest request, Long storeId, Long userId){
@@ -250,6 +263,7 @@ public class StoreService {
         store.update(request.name(), request.description(), request.type(), request.startDate(), request.endDate(), request.address(), latLng != null ? latLng.lat() : null, latLng != null ? latLng.lng() : null);
 
         storeRepository.save(store);
+        log.info("[스토어수정] userId={}, storeId={}", userId, storeId);
         return StoreResponse.from(store);
     }
 
@@ -270,6 +284,7 @@ public class StoreService {
         StoreGoods storeGoods = storeGoodsRepository.findById(storeGoodsId).orElseThrow(() -> new IllegalArgumentException("해당 상품이 없습니다."));
         storeGoods.updateImagePath(request.imagePath());
         storeGoodsRepository.save(storeGoods);
+        log.info("[이미지경로수정] userId={}, storeId={}, storeGoodsId={}", userId, storeId, storeGoodsId);
     }
 
     private LatLng addressToLatLng(String addr){

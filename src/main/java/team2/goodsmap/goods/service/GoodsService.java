@@ -1,6 +1,7 @@
 package team2.goodsmap.goods.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import team2.goodsmap.global.exception.NotFoundException;
@@ -17,6 +18,7 @@ import team2.goodsmap.store.repository.StoreGoodsRepository;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -89,6 +91,9 @@ public class GoodsService {
                 .animation(animation)
                 .build();
 
-        return GoodsResponse.from(goodsRepository.save(goods));
+        Goods saved = goodsRepository.save(goods);
+        log.info("[상품생성] goodsId={}, animationId={}", saved.getId(), animation.getId());
+
+        return GoodsResponse.from(saved);
     }
 }

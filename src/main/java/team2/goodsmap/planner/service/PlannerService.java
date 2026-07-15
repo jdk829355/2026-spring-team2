@@ -1,6 +1,7 @@
 package team2.goodsmap.planner.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import team2.goodsmap.global.exception.BadRequestException;
@@ -23,6 +24,7 @@ import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PlannerService {
@@ -47,6 +49,8 @@ public class PlannerService {
 
         // 3. 저장
         Planner saved = plannerRepository.save(planner);
+        log.info("[플래너생성] userId={}, plannerId={}, date={}",
+                userId, saved.getId(), saved.getDate());
 
         // 4. 응답 DTO로 변환해서 반환
         return PlannerResponse.from(saved);
@@ -117,6 +121,7 @@ public class PlannerService {
 
         // 전달된 필드만 수정
         planner.update(request.getTitle(), request.getDate());
+        log.info("[플래너수정] userId={}, plannerId={}", userId, plannerId);
 
         return PlannerResponse.from(planner);
     }
@@ -127,6 +132,7 @@ public class PlannerService {
         Planner planner = findOwnedPlanner(userId, plannerId);
 
         plannerRepository.delete(planner);
+        log.info("[플래너삭제] userId={}, plannerId={}", userId, plannerId);
     }
 
     // 내가 살 것 담기 : 취소 (굿즈 빼기)
@@ -142,14 +148,16 @@ public class PlannerService {
 
         // 3. 삭제
         plannerGoodsRepository.deleteById(plannerGoodsId);
+        log.info("[굿즈취소] userId={}, plannerId={}, plannerGoodsId={}",
+                userId, plannerId, plannerGoodsId);
     }
 
     // ===== private helpers =====
 
-    /**
+    /*
      * 플래너를 찾고, 로그인한 유저의 것이 맞는지까지 확인한다.
      * 5개 API에서 똑같이 반복되던 조회 + 권한검증을 한 곳으로 모음.
-     *
+
      * 남의 플래너일 때도 403이 아니라 404를 던진다.
      * "그 id의 플래너가 존재하긴 한다"는 사실 자체를 숨기기 위함(= 존재 여부 노출 방지).
      * PlannerGoodsService.findOwnedPlanner()와 동일한 정책.

@@ -1,6 +1,7 @@
 package team2.goodsmap.user.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +16,7 @@ import team2.goodsmap.user.repository.UserRepository;
 
 import java.time.LocalDateTime;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -42,6 +44,7 @@ public class AuthService {
         user.setAuthCode(authCode, LocalDateTime.now().plusMinutes(2));
         userRepository.save(user);
         emailService.sendAuthCode(request.getEmail(), authCode);
+        log.info("[회원가입요청:개인] userId={}, email={}", user.getId(), maskEmail(request.getEmail()));
     }
 
     // 업체 회원가입 요청
@@ -61,6 +64,7 @@ public class AuthService {
         user.setAuthCode(authCode, LocalDateTime.now().plusMinutes(2));
         userRepository.save(user);
         emailService.sendAuthCode(request.getEmail(), authCode);
+        log.info("[회원가입요청:업체] userId={}, email={}", user.getId(), maskEmail(request.getEmail()));
     }
 
     // 이메일 중복 확인
@@ -86,6 +90,7 @@ public class AuthService {
         }
 
         user.verify();
+        log.info("[이메일인증완료] userId={}, email={}", user.getId(), maskEmail(email));
     }
 
     private void validateAndCleanupExpiredEmail(String email) {
@@ -118,6 +123,7 @@ public class AuthService {
         String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail(), user.getRole().name());
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
 
+        log.info("[로그인] userId={}, role={}", user.getId(), user.getRole());
         return LoginResponse.of(accessToken, refreshToken);
     }
 
@@ -135,6 +141,20 @@ public class AuthService {
         String newAccessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail(), user.getRole().name());
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
 
+        log.info("[토큰재발급] userId={}", userId);
         return LoginResponse.of(newAccessToken, newRefreshToken);
+    }
+
+    // 이메일 마스킹: toto@gmail.com -> to***@gmail.com
+    // 로그에 개인정보(전체 이메일)가 평문으로 남지 않도록.
+    private String maskEmail(String email) {
+        if (email == null || !email.contains("@")) {
+            return "***";
+        }
+        int at = email.indexOf('@');
+        String local = email.substring(0, at);
+        String domain = email.substring(at);
+        String head = local.length() <= 2 ? local : local.substring(0, 2);
+        return head + "***" + domain;
     }
 }
