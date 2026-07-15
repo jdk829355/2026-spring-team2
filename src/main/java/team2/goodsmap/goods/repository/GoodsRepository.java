@@ -17,7 +17,7 @@ public interface GoodsRepository extends JpaRepository<Goods, Long> {
     // Goods와 Store는 직접 연관이 없어 StoreGoods를 거치는 서브쿼리로 지역 필터링
     @Query("""
         SELECT DISTINCT g FROM Goods g
-        JOIN g.animation a
+        JOIN FETCH g.animation a
         WHERE (:animationId IS NULL OR a.id = :animationId)
           AND (:keyword IS NULL OR LOWER(g.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
           AND (:region IS NULL OR g.id IN (
