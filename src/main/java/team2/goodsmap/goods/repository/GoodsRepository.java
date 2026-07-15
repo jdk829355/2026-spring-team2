@@ -19,10 +19,10 @@ public interface GoodsRepository extends JpaRepository<Goods, Long> {
         SELECT DISTINCT g FROM Goods g
         JOIN FETCH g.animation a
         WHERE (:animationId IS NULL OR a.id = :animationId)
-          AND (:keyword IS NULL OR LOWER(g.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
+          AND (:keyword IS NULL OR LOWER(g.name) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')))
           AND (:region IS NULL OR g.id IN (
                 SELECT sg.goods.id FROM StoreGoods sg
-                WHERE sg.store.address LIKE CONCAT('%', :region, '%')
+                WHERE sg.store.address LIKE CONCAT('%', CAST(:region AS string), '%')
           ))
         """)
     List<Goods> searchGoods(@Param("animationId") Long animationId,
