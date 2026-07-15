@@ -667,7 +667,7 @@ class StoreServiceTest {
     }
 
     @Test
-    void getStoreDetail_비관리자_접근_거부() {
+    void getStoreDetail_비관리자도_상세_조회_가능() {
         StoreResponse store = storeService.createStore(
                 createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)),
                 testUser.getId());
@@ -680,10 +680,10 @@ class StoreServiceTest {
                 .build();
         userRepository.save(regularUser);
 
-        Assertions.assertThatThrownBy(() ->
-                storeService.getStoreDetail(store.id(), regularUser.getId()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("상세 정보 조회 권한이 없습니다.");
+        StoreDetailResponse detail = storeService.getStoreDetail(store.id(), regularUser.getId());
+
+        Assertions.assertThat(detail.id()).isEqualTo(store.id());
+        Assertions.assertThat(detail.name()).isEqualTo("애니메이트");
     }
 
     private CreateStoreRequest createStoreRequest(LocalDate startDate, LocalDate endDate) {
