@@ -1,6 +1,7 @@
 package team2.goodsmap.planner.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import team2.goodsmap.global.exception.NotFoundException;
@@ -19,6 +20,7 @@ import team2.goodsmap.global.exception.BadRequestException;
 
 import java.time.LocalDate;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -52,6 +54,8 @@ public class PlannerGoodsService {
                 .storeGoods(storeGoods)
                 .build();
         plannerGoodsRepository.save(plannerGoods);
+        log.info("[살것담기] userId={}, plannerId={}, plannerGoodsId={}, storeGoodsId={}",
+                userId, planner.getId(), plannerGoods.getId(), request.storeGoodsId());
 
         return PlannerGoodsCreateResponse.builder()
                 .plannerId(planner.getId())
@@ -89,7 +93,10 @@ public class PlannerGoodsService {
                             .title(date + " 살 것")
                             .build();
 
-                    return plannerRepository.save(newPlanner);
+                    Planner created = plannerRepository.save(newPlanner);
+                    log.info("[플래너자동생성] userId={}, plannerId={}, date={}",
+                            userId, created.getId(), date);
+                    return created;
                 });
     }
 }
