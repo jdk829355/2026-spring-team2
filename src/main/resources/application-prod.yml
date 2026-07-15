@@ -36,6 +36,9 @@ spring:
   lifecycle:
     timeout-per-shutdown-phase: 20s
 
+server:
+  shutdown: graceful
+
 
 management:
   endpoints:
