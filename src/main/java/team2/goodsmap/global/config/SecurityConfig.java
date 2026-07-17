@@ -17,6 +17,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import team2.goodsmap.global.jwt.JwtAuthenticationFilter;
 import team2.goodsmap.global.jwt.JwtTokenProvider;
+import team2.goodsmap.global.filter.RequestLoggingFilter;
 
 import java.util.List;
 
@@ -59,6 +60,12 @@ public class SecurityConfig {
                 .addFilterBefore(
                         new JwtAuthenticationFilter(jwtTokenProvider),
                         UsernamePasswordAuthenticationFilter.class
+                )
+                //실행 순서 RequestLoggingFilter -> JwtAuthenticationFilter -> 컨트롤러 순서
+                //jwt인증에서 401 나도 requestId가 로그에 찍힘
+                .addFilterBefore(
+                        new RequestLoggingFilter(),
+                        JwtAuthenticationFilter.class
                 )
                 .build();
     }
