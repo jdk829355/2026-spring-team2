@@ -5,12 +5,18 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import team2.goodsmap.goods.entity.Goods;
+import org.springframework.data.jpa.repository.EntityGraph;
 
 import java.util.List;
 
 public interface GoodsRepository extends JpaRepository<Goods, Long> {
 
+    // findAll() 재선언 — 기본 구현 대신 이 시그니처가 우선 적용됨
+    @EntityGraph(attributePaths = {"animation"})
+    List<Goods> findAll();
+
     // 상품 목록 조회 (등록용) - GET /api/v1/goods?q
+    @EntityGraph(attributePaths = {"animation"})
     List<Goods> findByNameContainingIgnoreCase(String q);
 
     // 상품 목록 조회 (탐색용) - GET /api/v1/goods/search
@@ -30,4 +36,8 @@ public interface GoodsRepository extends JpaRepository<Goods, Long> {
                             @Param("keyword") String keyword);
 
     boolean existsByName(@NotBlank String name);
+
+
 }
+
+
