@@ -27,10 +27,11 @@ services:
       start_period: 40s
 
     logging:
-      driver: json-file
+      driver: awslogs
       options:
-        max-size: "10m"
-        max-file: "3"
+        awslogs-region: ap-northeast-2
+        awslogs-group: /goodsmap/prod/spring
+        tag: "{{.Name}}-{{.ID}}"
 
   nginx:
     image: nginx:1.27-alpine
@@ -69,10 +70,11 @@ services:
       retries: 3
 
     logging:
-      driver: json-file
+      driver: awslogs
       options:
-        max-size: "10m"
-        max-file: "3"
+        awslogs-region: ap-northeast-2
+        awslogs-group: /goodsmap/prod/nginx
+        tag: "{{.Name}}-{{.ID}}"
 
 networks:
   goodsmap-network:
