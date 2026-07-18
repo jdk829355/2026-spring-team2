@@ -49,8 +49,12 @@ public class PlannerService {
 
         // 3. 저장
         Planner saved = plannerRepository.save(planner);
-        log.info("[플래너생성] userId={}, plannerId={}, date={}",
-                userId, saved.getId(), saved.getDate());
+        log.atInfo()
+                .addKeyValue("event", "PLANNER_CREATED")
+                .addKeyValue("userId", userId)
+                .addKeyValue("plannerId", saved.getId())
+                .addKeyValue("date", saved.getDate().toString())
+                .log("플래너 생성");
 
         // 4. 응답 DTO로 변환해서 반환
         return PlannerResponse.from(saved);
@@ -121,7 +125,11 @@ public class PlannerService {
 
         // 전달된 필드만 수정
         planner.update(request.getTitle(), request.getDate());
-        log.info("[플래너수정] userId={}, plannerId={}", userId, plannerId);
+        log.atInfo()
+                .addKeyValue("event", "PLANNER_UPDATED")
+                .addKeyValue("userId", userId)
+                .addKeyValue("plannerId", plannerId)
+                .log("플래너 수정");
 
         return PlannerResponse.from(planner);
     }
@@ -132,7 +140,11 @@ public class PlannerService {
         Planner planner = findOwnedPlanner(userId, plannerId);
 
         plannerRepository.delete(planner);
-        log.info("[플래너삭제] userId={}, plannerId={}", userId, plannerId);
+        log.atInfo()
+                .addKeyValue("event", "PLANNER_DELETED")
+                .addKeyValue("userId", userId)
+                .addKeyValue("plannerId", plannerId)
+                .log("플래너 삭제");
     }
 
     // 내가 살 것 담기 : 취소 (굿즈 빼기)
@@ -148,8 +160,12 @@ public class PlannerService {
 
         // 3. 삭제
         plannerGoodsRepository.deleteById(plannerGoodsId);
-        log.info("[굿즈취소] userId={}, plannerId={}, plannerGoodsId={}",
-                userId, plannerId, plannerGoodsId);
+        log.atInfo()
+                .addKeyValue("event", "PLANNER_GOODS_REMOVED")
+                .addKeyValue("userId", userId)
+                .addKeyValue("plannerId", plannerId)
+                .addKeyValue("plannerGoodsId", plannerGoodsId)
+                .log("플래너 상품 취소");
     }
 
     // ===== private helpers =====

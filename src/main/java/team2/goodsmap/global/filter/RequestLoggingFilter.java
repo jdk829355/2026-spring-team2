@@ -15,7 +15,7 @@ import java.util.UUID;
 public class RequestLoggingFilter extends OncePerRequestFilter {
 
     private static final String REQUEST_ID_HEADER = "X-Request-Id";
-    private static final String MDC_KEY = "requestId";
+    private static final String MDC_KEY = "request_id";
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -36,11 +36,13 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
         } finally {
             long duration = System.currentTimeMillis() - startTime;
-            log.info("[요청완료] method={}, uri={}, status={}, durationMs={}",
-                    request.getMethod(),
-                    request.getRequestURI(),
-                    response.getStatus(),
-                    duration);
+            log.atInfo()
+                    .addKeyValue("event", "REQUEST_COMPLETED")
+                    .addKeyValue("method", request.getMethod())
+                    .addKeyValue("uri", request.getRequestURI())
+                    .addKeyValue("status", response.getStatus())
+                    .addKeyValue("durationMs", duration)
+                    .log("요청 완료");
 
             MDC.remove(MDC_KEY);
         }

@@ -54,8 +54,13 @@ public class PlannerGoodsService {
                 .storeGoods(storeGoods)
                 .build();
         plannerGoodsRepository.save(plannerGoods);
-        log.info("[살것담기] userId={}, plannerId={}, plannerGoodsId={}, storeGoodsId={}",
-                userId, planner.getId(), plannerGoods.getId(), request.storeGoodsId());
+        log.atInfo()
+                .addKeyValue("event", "PLANNER_GOODS_ADDED")
+                .addKeyValue("userId", userId)
+                .addKeyValue("plannerId", planner.getId())
+                .addKeyValue("plannerGoodsId", plannerGoods.getId())
+                .addKeyValue("storeGoodsId", request.storeGoodsId())
+                .log("살 것 담기");
 
         return PlannerGoodsCreateResponse.builder()
                 .plannerId(planner.getId())
@@ -94,8 +99,12 @@ public class PlannerGoodsService {
                             .build();
 
                     Planner created = plannerRepository.save(newPlanner);
-                    log.info("[플래너자동생성] userId={}, plannerId={}, date={}",
-                            userId, created.getId(), date);
+                    log.atInfo()
+                            .addKeyValue("event", "PLANNER_AUTO_CREATED")
+                            .addKeyValue("userId", userId)
+                            .addKeyValue("plannerId", created.getId())
+                            .addKeyValue("date", date.toString())
+                            .log("플래너 자동 생성");
                     return created;
                 });
     }

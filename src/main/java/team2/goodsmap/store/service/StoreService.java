@@ -70,7 +70,11 @@ public class StoreService {
 
         storeRepository.save(store);
         storeAdminRepository.save(storeAdmin);
-        log.info("[스토어생성] userId={}, storeId={}", userId, store.getId());
+        log.atInfo()
+                .addKeyValue("event", "STORE_CREATED")
+                .addKeyValue("userId", userId)
+                .addKeyValue("storeId", store.getId())
+                .log("스토어 생성");
         return StoreResponse.from(store);
     }
 
@@ -117,8 +121,13 @@ public class StoreService {
                 .build();
 
         storeAdminRepository.save(storeAdmin);
-        log.info("[관리자추가] actorUserId={}, storeId={}, newAdminId={}",
-                userId, storeId, user.getId());
+        log.atInfo()
+                .addKeyValue("event", "STORE_ADMIN_ADDED")
+                .addKeyValue("actorUserId", userId)
+                .addKeyValue("storeId", storeId)
+                .addKeyValue("storeAdminId", storeAdmin.getId())
+                .addKeyValue("newAdminUserId", user.getId())
+                .log("스토어 관리자 추가");
         return StoreAdminResponse.from(storeAdmin);
     }
 
@@ -168,8 +177,12 @@ public class StoreService {
         }
 
         storeAdminRepository.delete(target);
-        log.info("[관리자삭제] actorUserId={}, storeId={}, storeAdminId={}",
-                userId, storeId, storeAdminId);
+        log.atInfo()
+                .addKeyValue("event", "STORE_ADMIN_REMOVED")
+                .addKeyValue("actorUserId", userId)
+                .addKeyValue("storeId", storeId)
+                .addKeyValue("storeAdminId", storeAdminId)
+                .log("스토어 관리자 삭제");
     }
 
     // 유저가 해당 업체에 관리 권한이 있는지 체크
@@ -198,8 +211,12 @@ public class StoreService {
                 .build();
 
         storeGoodsRepository.save(storeGoods);
-        log.info("[재고등록:신규상품] userId={}, storeId={}, storeGoodsId={}",
-                userId, storeId, storeGoods.getId());
+        log.atInfo()
+                .addKeyValue("event", "INVENTORY_CREATED_WITH_NEW_GOODS")
+                .addKeyValue("userId", userId)
+                .addKeyValue("storeId", storeId)
+                .addKeyValue("storeGoodsId", storeGoods.getId())
+                .log("신규 상품 재고 등록");
         // StoreGoodsResponse 반환
         return StoreGoodsResponse.from(storeGoods);
     }
@@ -217,8 +234,13 @@ public class StoreService {
                 .build();
 
         storeGoodsRepository.save(storeGoods);
-        log.info("[재고등록:기존상품] userId={}, storeId={}, storeGoodsId={}, goodsId={}",
-                userId, storeId, storeGoods.getId(), request.goodsId());
+        log.atInfo()
+                .addKeyValue("event", "INVENTORY_CREATED_WITH_EXISTING_GOODS")
+                .addKeyValue("userId", userId)
+                .addKeyValue("storeId", storeId)
+                .addKeyValue("storeGoodsId", storeGoods.getId())
+                .addKeyValue("goodsId", request.goodsId())
+                .log("기존 상품 재고 등록");
         // StoreGoodsResponse 반환
         return StoreGoodsResponse.from(storeGoods);
     }
@@ -235,7 +257,12 @@ public class StoreService {
         storeGoods.update(request.price(), request.stock(), request.imagePath());
 
         storeGoodsRepository.save(storeGoods);
-        log.info("[재고수정] userId={}, storeId={}, storeGoodsId={}", userId, storeId, storeGoodsId);
+        log.atInfo()
+                .addKeyValue("event", "INVENTORY_UPDATED")
+                .addKeyValue("userId", userId)
+                .addKeyValue("storeId", storeId)
+                .addKeyValue("storeGoodsId", storeGoodsId)
+                .log("재고 수정");
         return StoreGoodsResponse.from(storeGoods);
     }
 
@@ -246,7 +273,12 @@ public class StoreService {
 
         StoreGoods storeGoods = storeGoodsRepository.findWithGoodsById(storeGoodsId).orElseThrow(() -> new IllegalArgumentException("해당 상품이 없습니다."));
         storeGoodsRepository.delete(storeGoods);
-        log.info("[재고삭제] userId={}, storeId={}, storeGoodsId={}", userId, storeId, storeGoodsId);
+        log.atInfo()
+                .addKeyValue("event", "INVENTORY_DELETED")
+                .addKeyValue("userId", userId)
+                .addKeyValue("storeId", storeId)
+                .addKeyValue("storeGoodsId", storeGoodsId)
+                .log("재고 삭제");
     }
 
     public StoreResponse updateStore(UpdateStoreRequest request, Long storeId, Long userId){
@@ -263,7 +295,11 @@ public class StoreService {
         store.update(request.name(), request.description(), request.type(), request.startDate(), request.endDate(), request.address(), latLng != null ? latLng.lat() : null, latLng != null ? latLng.lng() : null);
 
         storeRepository.save(store);
-        log.info("[스토어수정] userId={}, storeId={}", userId, storeId);
+        log.atInfo()
+                .addKeyValue("event", "STORE_UPDATED")
+                .addKeyValue("userId", userId)
+                .addKeyValue("storeId", storeId)
+                .log("스토어 수정");
         return StoreResponse.from(store);
     }
 
@@ -284,7 +320,12 @@ public class StoreService {
         StoreGoods storeGoods = storeGoodsRepository.findById(storeGoodsId).orElseThrow(() -> new IllegalArgumentException("해당 상품이 없습니다."));
         storeGoods.updateImagePath(request.imagePath());
         storeGoodsRepository.save(storeGoods);
-        log.info("[이미지경로수정] userId={}, storeId={}, storeGoodsId={}", userId, storeId, storeGoodsId);
+        log.atInfo()
+                .addKeyValue("event", "GOODS_IMAGE_PATH_UPDATED")
+                .addKeyValue("userId", userId)
+                .addKeyValue("storeId", storeId)
+                .addKeyValue("storeGoodsId", storeGoodsId)
+                .log("상품 이미지 경로 수정");
     }
 
     private LatLng addressToLatLng(String addr){

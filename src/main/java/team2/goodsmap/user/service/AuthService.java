@@ -44,7 +44,11 @@ public class AuthService {
         user.setAuthCode(authCode, LocalDateTime.now().plusMinutes(2));
         userRepository.save(user);
         emailService.sendAuthCode(request.getEmail(), authCode);
-        log.info("[회원가입요청:개인] userId={}, email={}", user.getId(), maskEmail(request.getEmail()));
+        log.atInfo()
+                .addKeyValue("event", "MEMBER_SIGNUP_REQUESTED")
+                .addKeyValue("userId", user.getId())
+                .addKeyValue("email", maskEmail(request.getEmail()))
+                .log("개인 회원가입 요청");
     }
 
     // 업체 회원가입 요청
@@ -64,7 +68,11 @@ public class AuthService {
         user.setAuthCode(authCode, LocalDateTime.now().plusMinutes(2));
         userRepository.save(user);
         emailService.sendAuthCode(request.getEmail(), authCode);
-        log.info("[회원가입요청:업체] userId={}, email={}", user.getId(), maskEmail(request.getEmail()));
+        log.atInfo()
+                .addKeyValue("event", "BUSINESS_SIGNUP_REQUESTED")
+                .addKeyValue("userId", user.getId())
+                .addKeyValue("email", maskEmail(request.getEmail()))
+                .log("업체 회원가입 요청");
     }
 
     // 이메일 중복 확인
@@ -90,7 +98,11 @@ public class AuthService {
         }
 
         user.verify();
-        log.info("[이메일인증완료] userId={}, email={}", user.getId(), maskEmail(email));
+        log.atInfo()
+                .addKeyValue("event", "EMAIL_VERIFIED")
+                .addKeyValue("userId", user.getId())
+                .addKeyValue("email", maskEmail(email))
+                .log("이메일 인증 완료");
     }
 
     private void validateAndCleanupExpiredEmail(String email) {
@@ -123,7 +135,11 @@ public class AuthService {
         String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail(), user.getRole().name());
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
 
-        log.info("[로그인] userId={}, role={}", user.getId(), user.getRole());
+        log.atInfo()
+                .addKeyValue("event", "USER_LOGGED_IN")
+                .addKeyValue("userId", user.getId())
+                .addKeyValue("role", user.getRole().name())
+                .log("로그인");
         return LoginResponse.of(accessToken, refreshToken);
     }
 
@@ -141,7 +157,10 @@ public class AuthService {
         String newAccessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail(), user.getRole().name());
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
 
-        log.info("[토큰재발급] userId={}", userId);
+        log.atInfo()
+                .addKeyValue("event", "TOKEN_REISSUED")
+                .addKeyValue("userId", userId)
+                .log("토큰 재발급");
         return LoginResponse.of(newAccessToken, newRefreshToken);
     }
 

@@ -1,11 +1,20 @@
 package team2.goodsmap.global.filter;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import net.logstash.logback.encoder.LogstashEncoder;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterEach;
+import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+
+import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -72,5 +81,49 @@ class RequestLoggingFilterTest {
         }
 
         assertThat(MDC.get("requestId")).isNull(); // finally에서 지워졌는지 확인
+    }
+
+    @Test
+    void 요청_정보를_JSON_필드로_기록한다() throws Exception {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        FilterChain chain = mock(FilterChain.class);
+
+        when(request.getHeader("X-Request-Id")).thenReturn("structured-log-test-id");
+        when(request.getMethod()).thenReturn("GET");
+        when(request.getRequestURI()).thenReturn("/api/v1/stores");
+        when(response.getStatus()).thenReturn(200);
+
+        Logger logger = (Logger) LoggerFactory.getLogger(RequestLoggingFilter.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+
+        try {
+            filter.doFilterInternal(request, response, chain);
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
+
+        ILoggingEvent loggingEvent = appender.list.getFirst();
+        LogstashEncoder encoder = new LogstashEncoder();
+        encoder.setContext(logger.getLoggerContext());
+        encoder.start();
+
+        try {
+            String encodedLog = new String(encoder.encode(loggingEvent), StandardCharsets.UTF_8);
+            JsonNode json = new ObjectMapper().readTree(encodedLog);
+
+            assertThat(json.get("message").asText()).isEqualTo("요청 완료");
+            assertThat(json.get("event").asText()).isEqualTo("REQUEST_COMPLETED");
+            assertThat(json.get("method").asText()).isEqualTo("GET");
+            assertThat(json.get("uri").asText()).isEqualTo("/api/v1/stores");
+            assertThat(json.get("status").asInt()).isEqualTo(200);
+            assertThat(json.get("status").isNumber()).isTrue();
+            assertThat(json.get("durationMs").isNumber()).isTrue();
+        } finally {
+            encoder.stop();
+        }
     }
 }

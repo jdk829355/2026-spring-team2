@@ -92,7 +92,11 @@ public class GoodsService {
                 .build();
 
         Goods saved = goodsRepository.save(goods);
-        log.info("[상품생성] goodsId={}, animationId={}", saved.getId(), animation.getId());
+        log.atInfo()
+                .addKeyValue("event", "GOODS_CREATED")
+                .addKeyValue("goodsId", saved.getId())
+                .addKeyValue("animationId", animation.getId())
+                .log("상품 생성");
 
         return GoodsResponse.from(saved);
     }
