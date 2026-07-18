@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
 
     env_file:
-      - ../.env
+      - /opt/goodsmap/.env
 
     expose:
       - "8080"
