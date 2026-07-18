@@ -80,7 +80,7 @@ class RequestLoggingFilterTest {
             // 예외는 다시 던져지는 게 정상 (필터가 삼키면 안 됨)
         }
 
-        assertThat(MDC.get("requestId")).isNull(); // finally에서 지워졌는지 확인
+        assertThat(MDC.get("request_id")).isNull(); // finally에서 지워졌는지 확인
     }
 
     @Test
