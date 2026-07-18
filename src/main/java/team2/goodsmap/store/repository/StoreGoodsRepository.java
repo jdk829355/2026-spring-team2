@@ -22,7 +22,12 @@ public interface StoreGoodsRepository extends JpaRepository<StoreGoods, Long> {
     List<StoreGoods> findByStoreId(@Param("storeId") Long storeId);
 
     // 상품 상세 조회 시, 이 상품을 파는 매장 목록
-    List<StoreGoods> findByGoodsId(Long goodsId);
+    @Query("""
+        SELECT sg FROM StoreGoods sg
+        JOIN FETCH sg.store s
+        WHERE sg.goods.id = :goodsId
+    """)
+    List<StoreGoods> findByGoodsId(@Param("goodsId") Long goodsId);
 
     // 관리자 권한 확인 및 goods 정보 fetch join
     @Query("""
