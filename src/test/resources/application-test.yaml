@@ -20,4 +20,4 @@ jwt:
 
 aws:
   cdn:
-    url: https://cdn.example.com
+    url: cdn.example.com

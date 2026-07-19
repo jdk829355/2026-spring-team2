@@ -42,7 +42,7 @@ class GoodsServiceTest {
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(goodsService, "cdnUrl", "https://cdn.example.com");
+        ReflectionTestUtils.setField(goodsService, "cdnUrl", "cdn.example.com");
     }
 
     @Test

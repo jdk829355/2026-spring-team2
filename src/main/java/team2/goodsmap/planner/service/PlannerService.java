@@ -196,7 +196,7 @@ public class PlannerService {
     }
 
     private String toCdnUrl(String imagePath) {
-        return imagePath == null ? null : cdnUrl + "/" + imagePath;
+        return imagePath == null ? null : "https://" + cdnUrl + "/" + imagePath;
     }
 
     /**

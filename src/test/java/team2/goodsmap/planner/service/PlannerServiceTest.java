@@ -61,7 +61,7 @@ class PlannerServiceTest {
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(plannerService, "cdnUrl", "https://cdn.example.com");
+        ReflectionTestUtils.setField(plannerService, "cdnUrl", "cdn.example.com");
     }
 
     // ===== fixtures =====
