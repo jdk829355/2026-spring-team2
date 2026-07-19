@@ -1,11 +1,13 @@
 package team2.goodsmap.goods.service;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 import team2.goodsmap.global.exception.NotFoundException;
 import team2.goodsmap.goods.dto.GoodsDetailResponse;
 import team2.goodsmap.goods.dto.GoodsSimpleResponse;
@@ -37,6 +39,11 @@ class GoodsServiceTest {
 
     @InjectMocks
     private GoodsService goodsService;
+
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(goodsService, "cdnUrl", "https://cdn.example.com");
+    }
 
     @Test
     @DisplayName("q가 없으면 전체 상품을 조회한다 (등록용)")
@@ -106,7 +113,14 @@ class GoodsServiceTest {
         Goods goods = EntityTestFactory.goods(12L, "마이멜로디 텀블러", animation);
         Store store = EntityTestFactory.store(7L, "강남점", StoreType.POPUP, "서울특별시 강남구",
                 BigDecimal.valueOf(37.5), BigDecimal.valueOf(127.0));
-        StoreGoods storeGoods = EntityTestFactory.storeGoods(58L, 15000, 30, "img.png", goods, store);
+        StoreGoods storeGoods = EntityTestFactory.storeGoods(
+                58L,
+                15000,
+                30,
+                "stores/7/goods/58/images/57165dce-ae65-4da2-9d5b-69747ce06381.png",
+                goods,
+                store
+        );
 
         given(goodsRepository.findById(12L)).willReturn(Optional.of(goods));
         given(storeGoodsRepository.findByGoodsId(12L)).willReturn(List.of(storeGoods));
@@ -119,6 +133,9 @@ class GoodsServiceTest {
         assertThat(result.getStores()).hasSize(1);
         assertThat(result.getStores().get(0).getStoreName()).isEqualTo("강남점");
         assertThat(result.getStores().get(0).getPrice()).isEqualTo(15000);
+        assertThat(result.getStores().get(0).getImagePath()).isEqualTo(
+                "https://cdn.example.com/stores/7/goods/58/images/57165dce-ae65-4da2-9d5b-69747ce06381.png"
+        );
     }
 
     @Test

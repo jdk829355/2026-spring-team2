@@ -17,3 +17,7 @@ spring:
 # Base64-encoded 53-byte string → decoded ≥ 32 bytes, JJWT HS256 최소 요구 충족
 jwt:
   secret: dGhpcy1pcy1hLXRlc3Qtand0LXNlY3JldC1rZXktZm9yLWxvY2FsLWRldmVsb3BtZW50LW9ubHk=
+
+aws:
+  cdn:
+    url: https://cdn.example.com

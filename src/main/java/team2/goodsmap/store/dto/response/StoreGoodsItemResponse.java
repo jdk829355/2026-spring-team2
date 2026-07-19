@@ -11,7 +11,7 @@ public record StoreGoodsItemResponse(
         int stock,
         String imagePath
 ) {
-    public static StoreGoodsItemResponse from(StoreGoods storeGoods) {
+    public static StoreGoodsItemResponse from(StoreGoods storeGoods, String imagePath) {
         return new StoreGoodsItemResponse(
                 storeGoods.getId(),
                 storeGoods.getGoods().getId(),
@@ -19,7 +19,7 @@ public record StoreGoodsItemResponse(
                 storeGoods.getGoods().getAnimation().getTitle(),
                 storeGoods.getPrice(),
                 storeGoods.getStock(),
-                storeGoods.getImagePath()
+                imagePath
         );
     }
 }

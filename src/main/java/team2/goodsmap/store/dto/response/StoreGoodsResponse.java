@@ -11,14 +11,14 @@ public record StoreGoodsResponse(
         int stock,
         String imagePath
 ) {
-    public static StoreGoodsResponse from(StoreGoods storeGoods) {
+    public static StoreGoodsResponse from(StoreGoods storeGoods, String imagePath) {
         return new StoreGoodsResponse(
                 storeGoods.getId(),
                 storeGoods.getStore().getId(),
                 GoodsResponse.from(storeGoods.getGoods()),
                 storeGoods.getPrice(),
                 storeGoods.getStock(),
-                storeGoods.getImagePath()
+                imagePath
         );
     }
 }

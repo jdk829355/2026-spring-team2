@@ -2,6 +2,7 @@ package team2.goodsmap.goods.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import team2.goodsmap.global.exception.NotFoundException;
@@ -27,6 +28,9 @@ public class GoodsService {
     private final GoodsRepository goodsRepository;
     private final StoreGoodsRepository storeGoodsRepository;
     private final AnimationRepository animationRepository;
+
+    @Value("${aws.cdn.url}")
+    private String cdnUrl;
 
     // 상품 목록 조회 (goods 테이블, 등록용) - GET /api/v1/goods?q
     public List<GoodsSimpleResponse> getGoodsForRegistration(String q) {
@@ -61,7 +65,7 @@ public class GoodsService {
                         .address(sg.getStore().getAddress())
                         .price(sg.getPrice())
                         .stock(sg.getStock())
-                        .imagePath(sg.getImagePath())
+                        .imagePath(toCdnUrl(sg.getImagePath()))
                         .build())
                 .toList();
 
@@ -99,5 +103,9 @@ public class GoodsService {
                 .log("상품 생성");
 
         return GoodsResponse.from(saved);
+    }
+
+    private String toCdnUrl(String imagePath) {
+        return imagePath == null ? null : cdnUrl + "/" + imagePath;
     }
 }

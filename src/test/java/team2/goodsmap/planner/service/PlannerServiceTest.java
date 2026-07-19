@@ -1,6 +1,7 @@
 package team2.goodsmap.planner.service;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -58,6 +59,11 @@ class PlannerServiceTest {
     @InjectMocks
     private PlannerService plannerService;
 
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(plannerService, "cdnUrl", "https://cdn.example.com");
+    }
+
     // ===== fixtures =====
 
     private User user(Long id) {
@@ -80,10 +86,15 @@ class PlannerServiceTest {
     private PlannerGoods plannerGoods(Long id, Planner planner) {
         Store store = EntityTestFactory.store(7L, "애니메이트 홍대점", StoreType.STORE,
                 "서울 마포구 양화로 100", new BigDecimal("37.5563"), new BigDecimal("126.9236"));
-        StoreGoods storeGoods = EntityTestFactory.storeGoods(58L, 15000, 30, "img.png",
+        StoreGoods storeGoods = EntityTestFactory.storeGoods(
+                58L,
+                15000,
+                30,
+                "stores/7/goods/58/images/57165dce-ae65-4da2-9d5b-69747ce06381.png",
                 EntityTestFactory.goods(11L, "아크릴 스탠드",
                         EntityTestFactory.animation(3L, "주술회전")),
-                store);
+                store
+        );
 
         PlannerGoods pg = PlannerGoods.builder().planner(planner).storeGoods(storeGoods).build();
         ReflectionTestUtils.setField(pg, "id", id);
@@ -222,6 +233,9 @@ class PlannerServiceTest {
         assertThat(goods.getAnimationTitle()).isEqualTo("주술회전");
         assertThat(goods.getPrice()).isEqualTo(15000);
         assertThat(goods.getStock()).isEqualTo(30);
+        assertThat(goods.getImagePath()).isEqualTo(
+                "https://cdn.example.com/stores/7/goods/58/images/57165dce-ae65-4da2-9d5b-69747ce06381.png"
+        );
         assertThat(goods.getStore().getName()).isEqualTo("애니메이트 홍대점");
         assertThat(goods.getStore().getAddress()).isEqualTo("서울 마포구 양화로 100");
     }

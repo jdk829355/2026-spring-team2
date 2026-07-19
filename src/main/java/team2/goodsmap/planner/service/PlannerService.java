@@ -2,6 +2,7 @@ package team2.goodsmap.planner.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import team2.goodsmap.global.exception.BadRequestException;
@@ -32,6 +33,9 @@ public class PlannerService {
     private final PlannerRepository plannerRepository;
     private final UserRepository userRepository;
     private final PlannerGoodsRepository plannerGoodsRepository;
+
+    @Value("${aws.cdn.url}")
+    private String cdnUrl;
 
     // 플래너 생성
     @Transactional
@@ -105,7 +109,10 @@ public class PlannerService {
         // 2. 담긴 굿즈 목록 조회 (store_goods → goods → animation, store 까지 fetch join)
         List<PlannerGoodsResponse> goods = plannerGoodsRepository.findByPlannerIdWithDetails(plannerId)
                 .stream()
-                .map(PlannerGoodsResponse::from)
+                .map(plannerGoods -> PlannerGoodsResponse.from(
+                        plannerGoods,
+                        toCdnUrl(plannerGoods.getStoreGoods().getImagePath())
+                ))
                 .toList();
 
         // 3. 응답 조립
@@ -186,6 +193,10 @@ public class PlannerService {
             throw new NotFoundException("본인의 플래너가 아닙니다. id=" + plannerId);
         }
         return planner;
+    }
+
+    private String toCdnUrl(String imagePath) {
+        return imagePath == null ? null : cdnUrl + "/" + imagePath;
     }
 
     /**

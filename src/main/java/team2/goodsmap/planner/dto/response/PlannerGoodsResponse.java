@@ -20,7 +20,7 @@ public class PlannerGoodsResponse {
     private StoreInfo store;
 
     // 엔티티 → DTO 변환. PlannerResponse.from() 과 같은 패턴.
-    public static PlannerGoodsResponse from(PlannerGoods plannerGoods) {
+    public static PlannerGoodsResponse from(PlannerGoods plannerGoods, String imagePath) {
         StoreGoods storeGoods = plannerGoods.getStoreGoods();
         Goods goods = storeGoods.getGoods();
         Store store = storeGoods.getStore();
@@ -32,7 +32,7 @@ public class PlannerGoodsResponse {
                 .animationTitle(goods.getAnimation().getTitle())
                 .price(storeGoods.getPrice())
                 .stock(storeGoods.getStock())
-                .imagePath(storeGoods.getImagePath())
+                .imagePath(imagePath)
                 .store(StoreInfo.builder()
                         .id(store.getId())
                         .name(store.getName())

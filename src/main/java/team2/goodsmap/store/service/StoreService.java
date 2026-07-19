@@ -2,6 +2,7 @@ package team2.goodsmap.store.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import team2.goodsmap.global.exception.NotFoundException;
@@ -41,6 +42,9 @@ public class StoreService {
     private final StoreGoodsRepository storeGoodsRepository;  //
     private final GoodsRepository goodsRepository;
     private final KakaoGeocodingService kakaoGeocodingService;
+
+    @Value("${aws.cdn.url}")
+    private String cdnUrl;
 
 
     public StoreResponse createStore(CreateStoreRequest request, Long userId) {
@@ -218,7 +222,7 @@ public class StoreService {
                 .addKeyValue("storeGoodsId", storeGoods.getId())
                 .log("신규 상품 재고 등록");
         // StoreGoodsResponse 반환
-        return StoreGoodsResponse.from(storeGoods);
+        return StoreGoodsResponse.from(storeGoods, toCdnUrl(storeGoods.getImagePath()));
     }
 
     // StoreGoods를 생성 (Goods가 기존에 있는 경우) - POST /api/v1/stores/{storeId}/goods
@@ -242,7 +246,7 @@ public class StoreService {
                 .addKeyValue("goodsId", request.goodsId())
                 .log("기존 상품 재고 등록");
         // StoreGoodsResponse 반환
-        return StoreGoodsResponse.from(storeGoods);
+        return StoreGoodsResponse.from(storeGoods, toCdnUrl(storeGoods.getImagePath()));
     }
 
     // 재고, 가격, 이미지 경로 수정 - PATCH /api/v1/stores/{storeId}/goods/{storeGoodsId}
@@ -263,7 +267,7 @@ public class StoreService {
                 .addKeyValue("storeId", storeId)
                 .addKeyValue("storeGoodsId", storeGoodsId)
                 .log("재고 수정");
-        return StoreGoodsResponse.from(storeGoods);
+        return StoreGoodsResponse.from(storeGoods, toCdnUrl(storeGoods.getImagePath()));
     }
 
     public void deleteStoreGoods(Long storeId, Long storeGoodsId, Long userId) {
@@ -371,9 +375,14 @@ public class StoreService {
         }
 
         return storeGoodsRepository.findByStoreId(storeId).stream()
-                .map(sg -> new StoreGoodsItemResponse(
-                        sg.getId(), sg.getGoods().getId(), sg.getGoods().getName(),
-                        sg.getGoods().getAnimation().getTitle(), sg.getPrice(), sg.getStock(), sg.getImagePath()))
+                .map(sg -> StoreGoodsItemResponse.from(
+                        sg,
+                        toCdnUrl(sg.getImagePath())
+                ))
                 .toList();
+    }
+
+    private String toCdnUrl(String imagePath) {
+        return imagePath == null ? null : cdnUrl + "/" + imagePath;
     }
 }

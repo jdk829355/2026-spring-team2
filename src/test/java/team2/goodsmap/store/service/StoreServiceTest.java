@@ -274,6 +274,7 @@ class StoreServiceTest {
         Assertions.assertThat(response.goodsInfo().id()).isEqualTo(goods.getId());
         Assertions.assertThat(response.price()).isEqualTo(15000);
         Assertions.assertThat(response.stock()).isEqualTo(30);
+        Assertions.assertThat(response.imagePath()).isNull();
         Assertions.assertThat(storeGoodsRepository.findByStoreId(store.id())).hasSize(1);
     }
 
@@ -379,9 +380,19 @@ class StoreServiceTest {
 
         StoreGoodsResponse storeGoods = storeService.createStoreGoods(request, testUser.getId(), store.id());
 
-        StoreGoodsResponse storeGoodsResponse = storeService.modifyStoreGoods(store.id(), storeGoods.id(), new UpdateStoreGoodsRequest(6000, 15, null), testUser.getId());
+        String imagePath = "stores/" + store.id() + "/goods/" + storeGoods.id()
+                + "/images/57165dce-ae65-4da2-9d5b-69747ce06381.png";
+        StoreGoodsResponse storeGoodsResponse = storeService.modifyStoreGoods(
+                store.id(),
+                storeGoods.id(),
+                new UpdateStoreGoodsRequest(6000, 15, imagePath),
+                testUser.getId()
+        );
         Assertions.assertThat(storeGoodsResponse.price()).isEqualTo(6000);
         Assertions.assertThat(storeGoodsResponse.stock()).isEqualTo(15);
+        Assertions.assertThat(storeGoodsResponse.imagePath()).isEqualTo("https://cdn.example.com/" + imagePath);
+        Assertions.assertThat(storeGoodsRepository.findById(storeGoods.id()).orElseThrow().getImagePath())
+                .isEqualTo(imagePath);
     }
 
     @Test
@@ -557,6 +568,10 @@ class StoreServiceTest {
         var updated = storeGoodsRepository.findById(storeGoods.id()).orElseThrow();
         Assertions.assertThat(updated.getImagePath())
                 .isEqualTo("stores/1/goods/" + storeGoods.id() + "/images/550e8400-e29b-41d4-a716-446655440000.png");
+
+        Assertions.assertThat(storeService.getStoreGoods(store.id()).getFirst().imagePath())
+                .isEqualTo("https://cdn.example.com/stores/1/goods/" + storeGoods.id()
+                        + "/images/550e8400-e29b-41d4-a716-446655440000.png");
     }
 
     @Test
