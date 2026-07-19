@@ -47,6 +47,7 @@ class GoodsControllerTest {
                 GoodsSimpleResponse.builder()
                         .id(12L).name("마이멜로디 텀블러")
                         .animationId(5L).animationTitle("산리오 캐릭터즈")
+                        .imageUrls(List.of())
                         .build()
         ));
 
@@ -64,6 +65,10 @@ class GoodsControllerTest {
                 GoodsSimpleResponse.builder()
                         .id(12L).name("마이멜로디 텀블러")
                         .animationId(5L).animationTitle("산리오 캐릭터즈")
+                        .imageUrls(List.of(
+                                "https://cdn.example.com/stores/1/goods/12/images/image-1.png",
+                                "https://cdn.example.com/stores/2/goods/12/images/image-2.png"
+                        ))
                         .build()
         ));
 
@@ -72,7 +77,10 @@ class GoodsControllerTest {
                         .param("animationId", "5")
                         .param("region", "서울"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.length()").value(1));
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].imageUrls.length()").value(2))
+                .andExpect(jsonPath("$.data[0].imageUrls[0]")
+                        .value("https://cdn.example.com/stores/1/goods/12/images/image-1.png"));
     }
 
     @Test

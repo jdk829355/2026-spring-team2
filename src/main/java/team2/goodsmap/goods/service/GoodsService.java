@@ -9,6 +9,7 @@ import team2.goodsmap.global.exception.NotFoundException;
 import team2.goodsmap.goods.dto.CreateGoodsRequest;
 import team2.goodsmap.goods.dto.GoodsDetailResponse;
 import team2.goodsmap.goods.dto.GoodsResponse;
+import team2.goodsmap.goods.dto.GoodsSearchRow;
 import team2.goodsmap.goods.dto.GoodsSimpleResponse;
 import team2.goodsmap.goods.entity.Animation;
 import team2.goodsmap.goods.entity.Goods;
@@ -17,7 +18,10 @@ import team2.goodsmap.goods.repository.GoodsRepository;
 import team2.goodsmap.store.entity.StoreGoods;
 import team2.goodsmap.store.repository.StoreGoodsRepository;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -45,8 +49,33 @@ public class GoodsService {
 
     // 상품 목록 조회 (탐색용) - GET /api/v1/goods/search
     public List<GoodsSimpleResponse> searchGoods(Long animationId, String region, String keyword) {
-        return goodsRepository.searchGoods(animationId, region, keyword).stream()
-                .map(GoodsSimpleResponse::from)
+        Map<Long, List<GoodsSearchRow>> rowsByGoodsId = goodsRepository
+                .searchGoods(animationId, region, keyword)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        GoodsSearchRow::goodsId,
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
+
+        return rowsByGoodsId.values().stream()
+                .map(rows -> {
+                    GoodsSearchRow goods = rows.getFirst();
+                    List<String> imageUrls = rows.stream()
+                            .map(GoodsSearchRow::imagePath)
+                            .filter(imagePath -> imagePath != null && !imagePath.isBlank())
+                            .map(this::toCdnUrl)
+                            .distinct()
+                            .toList();
+
+                    return GoodsSimpleResponse.builder()
+                            .id(goods.goodsId())
+                            .name(goods.goodsName())
+                            .animationId(goods.animationId())
+                            .animationTitle(goods.animationTitle())
+                            .imageUrls(imageUrls)
+                            .build();
+                })
                 .toList();
     }
 

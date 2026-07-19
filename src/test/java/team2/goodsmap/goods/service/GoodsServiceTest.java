@@ -10,6 +10,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import team2.goodsmap.global.exception.NotFoundException;
 import team2.goodsmap.goods.dto.GoodsDetailResponse;
+import team2.goodsmap.goods.dto.GoodsSearchRow;
 import team2.goodsmap.goods.dto.GoodsSimpleResponse;
 import team2.goodsmap.goods.entity.Animation;
 import team2.goodsmap.goods.entity.Goods;
@@ -78,12 +79,15 @@ class GoodsServiceTest {
     }
 
     @Test
-    @DisplayName("작품/지역/키워드로 상품을 탐색한다")
+    @DisplayName("작품/지역/키워드로 상품과 해당 지역 업체 이미지들을 탐색한다")
     void searchGoods_필터조회() {
         // given
-        Animation animation = EntityTestFactory.animation(5L, "산리오 캐릭터즈");
-        Goods goods = EntityTestFactory.goods(12L, "쿠로미 인형", animation);
-        given(goodsRepository.searchGoods(5L, "서울", "쿠로미")).willReturn(List.of(goods));
+        given(goodsRepository.searchGoods(5L, "서울", "쿠로미")).willReturn(List.of(
+                new GoodsSearchRow(12L, "쿠로미 인형", 5L, "산리오 캐릭터즈",
+                        "stores/1/goods/12/images/57165dce-ae65-4da2-9d5b-69747ce06381.png"),
+                new GoodsSearchRow(12L, "쿠로미 인형", 5L, "산리오 캐릭터즈",
+                        "stores/2/goods/12/images/57165dce-ae65-4da2-9d5b-69747ce06382.png")
+        ));
 
         // when
         List<GoodsSimpleResponse> result = goodsService.searchGoods(5L, "서울", "쿠로미");
@@ -91,6 +95,22 @@ class GoodsServiceTest {
         // then
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getAnimationId()).isEqualTo(5L);
+        assertThat(result.get(0).getImageUrls()).containsExactly(
+                "https://cdn.example.com/stores/1/goods/12/images/57165dce-ae65-4da2-9d5b-69747ce06381.png",
+                "https://cdn.example.com/stores/2/goods/12/images/57165dce-ae65-4da2-9d5b-69747ce06382.png"
+        );
+    }
+
+    @Test
+    @DisplayName("이미지가 없는 상품은 빈 이미지 목록을 반환한다")
+    void searchGoods_이미지없음() {
+        given(goodsRepository.searchGoods(null, null, null)).willReturn(List.of(
+                new GoodsSearchRow(12L, "쿠로미 인형", 5L, "산리오 캐릭터즈", null)
+        ));
+
+        List<GoodsSimpleResponse> result = goodsService.searchGoods(null, null, null);
+
+        assertThat(result.getFirst().getImageUrls()).isEmpty();
     }
 
     @Test

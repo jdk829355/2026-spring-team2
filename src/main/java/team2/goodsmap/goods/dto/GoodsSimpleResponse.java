@@ -4,6 +4,8 @@ import lombok.Builder;
 import lombok.Getter;
 import team2.goodsmap.goods.entity.Goods;
 
+import java.util.List;
+
 @Getter
 @Builder
 public class GoodsSimpleResponse {
@@ -12,6 +14,7 @@ public class GoodsSimpleResponse {
     private String name;
     private Long animationId;
     private String animationTitle;
+    private List<String> imageUrls;
 
     public static GoodsSimpleResponse from(Goods goods) {
         return GoodsSimpleResponse.builder()
@@ -19,6 +22,7 @@ public class GoodsSimpleResponse {
                 .name(goods.getName())
                 .animationId(goods.getAnimation().getId())
                 .animationTitle(goods.getAnimation().getTitle())
+                .imageUrls(List.of())
                 .build();
     }
 }
