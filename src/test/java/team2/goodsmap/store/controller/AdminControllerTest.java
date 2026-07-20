@@ -40,6 +40,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -342,6 +343,72 @@ class AdminControllerTest {
                 .andExpect(jsonPath("$.data.stock").value(12));
 
         verify(storeService).createStoreGoods(any(AddExistingStoreGoodsRequest.class), eq(1L), eq(1L));
+    }
+
+    @Test
+    void 기존상품_추가_요청값이_유효하지_않으면_400을_반환한다() throws Exception {
+        String token = "test-access-token";
+        String invalidBody = """
+                {"goodsId": null, "price": -1, "stock": -1}
+                """;
+
+        given(jwtTokenProvider.validateToken(token)).willReturn(true);
+        given(jwtTokenProvider.isAccessToken(token)).willReturn(true);
+        given(jwtTokenProvider.getUserId(token)).willReturn(1L);
+        given(jwtTokenProvider.getRole(token)).willReturn("STORE");
+
+        mockMvc.perform(post("/api/v1/stores/1/goods")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invalidBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("입력값이 올바르지 않습니다."));
+
+        verify(storeService, never()).createStoreGoods(any(AddExistingStoreGoodsRequest.class), anyLong(), anyLong());
+    }
+
+    @Test
+    void 기존상품_추가_필수값이_누락되면_400을_반환한다() throws Exception {
+        String token = "test-access-token";
+        String invalidBody = """
+                {"goodsId": 10}
+                """;
+
+        given(jwtTokenProvider.validateToken(token)).willReturn(true);
+        given(jwtTokenProvider.isAccessToken(token)).willReturn(true);
+        given(jwtTokenProvider.getUserId(token)).willReturn(1L);
+        given(jwtTokenProvider.getRole(token)).willReturn("STORE");
+
+        mockMvc.perform(post("/api/v1/stores/1/goods")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invalidBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("입력값이 올바르지 않습니다."));
+
+        verify(storeService, never()).createStoreGoods(any(AddExistingStoreGoodsRequest.class), anyLong(), anyLong());
+    }
+
+    @Test
+    void 기존상품_추가_goodsId가_양수가_아니면_400을_반환한다() throws Exception {
+        String token = "test-access-token";
+        String invalidBody = """
+                {"goodsId": 0, "price": 5000, "stock": 10}
+                """;
+
+        given(jwtTokenProvider.validateToken(token)).willReturn(true);
+        given(jwtTokenProvider.isAccessToken(token)).willReturn(true);
+        given(jwtTokenProvider.getUserId(token)).willReturn(1L);
+        given(jwtTokenProvider.getRole(token)).willReturn("STORE");
+
+        mockMvc.perform(post("/api/v1/stores/1/goods")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invalidBody))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("입력값이 올바르지 않습니다."));
+
+        verify(storeService, never()).createStoreGoods(any(AddExistingStoreGoodsRequest.class), anyLong(), anyLong());
     }
 
     @Test

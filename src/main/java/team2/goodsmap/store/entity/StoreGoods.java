@@ -13,7 +13,9 @@ import team2.goodsmap.goods.entity.Goods;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "store_goods")
+@Table(name = "store_goods", uniqueConstraints = {
+        @UniqueConstraint(name = "UQ_STORE_GOODS", columnNames = {"store_id", "goods_id"})
+})
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

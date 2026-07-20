@@ -101,3 +101,4 @@ ALTER TABLE "store_admin"
         FOREIGN KEY ("store_id") REFERENCES "store" ("id");
 
 ALTER TABLE "store_admin"   ADD CONSTRAINT "UQ_STORE_ADMIN"     UNIQUE ("user_id", "store_id");
+ALTER TABLE "store_goods"   ADD CONSTRAINT "UQ_STORE_GOODS"     UNIQUE ("store_id", "goods_id");

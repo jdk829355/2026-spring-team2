@@ -305,6 +305,26 @@ class StoreServiceTest {
     }
 
     @Test
+    void 이미_등록된_기존상품은_storeGoods로_중복_생성할_수_없다() {
+        StoreResponse store = storeService.createStore(
+                createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)),
+                testUser.getId());
+        Animation animation = animationRepository.save(animation("슬램덩크"));
+        Goods goods = goodsRepository.save(Goods.builder()
+                .name("포토카드")
+                .animation(animation)
+                .build());
+        AddExistingStoreGoodsRequest request = new AddExistingStoreGoodsRequest(goods.getId(), 5000, 12);
+
+        storeService.createStoreGoods(request, testUser.getId(), store.id());
+
+        Assertions.assertThatThrownBy(() -> storeService.createStoreGoods(request, testUser.getId(), store.id()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("이미 등록된 상품입니다.");
+        Assertions.assertThat(storeGoodsRepository.findByStoreId(store.id())).hasSize(1);
+    }
+
+    @Test
     void storeGoods_삭제_성공() {
         StoreResponse store = storeService.createStore(
                 createStoreRequest(LocalDate.of(2023, 1, 1), LocalDate.of(2023, 12, 31)),
