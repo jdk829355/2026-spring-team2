@@ -3,6 +3,7 @@ package team2.goodsmap.store.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import team2.goodsmap.global.exception.NotFoundException;
@@ -26,6 +27,7 @@ import team2.goodsmap.user.repository.UserRepository;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
 @Slf4j
 @Service
@@ -229,6 +231,9 @@ public class StoreService {
     public StoreGoodsResponse createStoreGoods (AddExistingStoreGoodsRequest request, Long userId, Long storeId) {
         // 업체 관리자 여부 확인
         validateStoreAdmin(userId, storeId, "상품 추가 권한이 없습니다.");
+        if (storeGoodsRepository.existsByStoreIdAndGoodsId(storeId, request.goodsId())) {
+            throw new IllegalArgumentException("이미 등록된 상품입니다.");
+        }
         // StoreGoods 생성
         StoreGoods storeGoods = StoreGoods.builder()
                 .price(request.price())
@@ -237,7 +242,14 @@ public class StoreService {
                 .store(storeRepository.findById(storeId).orElseThrow(() -> new IllegalArgumentException("업체가 없습니다.")))
                 .build();
 
-        storeGoodsRepository.save(storeGoods);
+        try {
+            storeGoodsRepository.saveAndFlush(storeGoods);
+        } catch (DataIntegrityViolationException e) {
+            if (isStoreGoodsUniqueConstraintViolation(e)) {
+                throw new IllegalArgumentException("이미 등록된 상품입니다.");
+            }
+            throw e;
+        }
         log.atInfo()
                 .addKeyValue("event", "INVENTORY_CREATED_WITH_EXISTING_GOODS")
                 .addKeyValue("userId", userId)
@@ -247,6 +259,18 @@ public class StoreService {
                 .log("기존 상품 재고 등록");
         // StoreGoodsResponse 반환
         return StoreGoodsResponse.from(storeGoods, toCdnUrl(storeGoods.getImagePath()));
+    }
+
+    private boolean isStoreGoodsUniqueConstraintViolation(Throwable error) {
+        Throwable current = error;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null && message.toUpperCase(Locale.ROOT).contains("UQ_STORE_GOODS")) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     // 재고, 가격, 이미지 경로 수정 - PATCH /api/v1/stores/{storeId}/goods/{storeGoodsId}
