@@ -36,6 +36,27 @@ class GoodsRepositoryTest {
     private StoreGoodsRepository storeGoodsRepository;
 
     @Test
+    void 등록용_상품_검색은_첫_이미지만_조회한다() {
+        Animation animation = animationRepository.save(EntityTestFactory.animation(null, "귀멸의 칼날"));
+        Goods goods = goodsRepository.save(Goods.builder()
+                .name("탄지로 아크릴 스탠드")
+                .animation(animation)
+                .build());
+        Store seoulStore = storeRepository.save(store("서울특별시 마포구"));
+        Store busanStore = storeRepository.save(store("부산광역시 해운대구"));
+        Store incheonStore = storeRepository.save(store("인천광역시 연수구"));
+
+        storeGoodsRepository.save(storeGoods(goods, seoulStore, null));
+        storeGoodsRepository.save(storeGoods(goods, busanStore, "stores/1/goods/1/images/first.png"));
+        storeGoodsRepository.save(storeGoods(goods, incheonStore, "stores/2/goods/1/images/second.png"));
+
+        List<GoodsSearchRow> result = goodsRepository.findGoodsForRegistration("탄지로");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().imagePath()).isEqualTo("stores/1/goods/1/images/first.png");
+    }
+
+    @Test
     void 지역에_해당하는_업체의_이미지만_조회한다() {
         Animation animation = animationRepository.save(EntityTestFactory.animation(null, "귀멸의 칼날"));
         Goods goodsWithImages = goodsRepository.save(Goods.builder()
