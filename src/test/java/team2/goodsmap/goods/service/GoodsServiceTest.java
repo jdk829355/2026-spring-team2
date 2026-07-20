@@ -50,9 +50,9 @@ class GoodsServiceTest {
     @DisplayName("q가 없으면 전체 상품을 조회한다 (등록용)")
     void getGoodsForRegistration_전체조회() {
         // given
-        Animation animation = EntityTestFactory.animation(1L, "산리오 캐릭터즈");
-        Goods goods = EntityTestFactory.goods(1L, "마이멜로디 텀블러", animation);
-        given(goodsRepository.findAll()).willReturn(List.of(goods));
+        given(goodsRepository.findGoodsForRegistration(null)).willReturn(List.of(
+                new GoodsSearchRow(1L, "마이멜로디 텀블러", 1L, "산리오 캐릭터즈", null)
+        ));
 
         // when
         List<GoodsSimpleResponse> result = goodsService.getGoodsForRegistration(null);
@@ -63,12 +63,23 @@ class GoodsServiceTest {
     }
 
     @Test
+    @DisplayName("공백 검색어는 전체 상품 조회로 처리한다 (등록용)")
+    void getGoodsForRegistration_공백검색어() {
+        given(goodsRepository.findGoodsForRegistration(null)).willReturn(List.of());
+
+        List<GoodsSimpleResponse> result = goodsService.getGoodsForRegistration("   ");
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
     @DisplayName("q가 있으면 이름으로 검색한다 (등록용)")
     void getGoodsForRegistration_검색() {
         // given
-        Animation animation = EntityTestFactory.animation(1L, "산리오 캐릭터즈");
-        Goods goods = EntityTestFactory.goods(1L, "마이멜로디 텀블러", animation);
-        given(goodsRepository.findByNameContainingIgnoreCase("마이멜로디")).willReturn(List.of(goods));
+        given(goodsRepository.findGoodsForRegistration("마이멜로디")).willReturn(List.of(
+                new GoodsSearchRow(1L, "마이멜로디 텀블러", 1L, "산리오 캐릭터즈",
+                        " stores/1/goods/1/images/thumbnail.png ")
+        ));
 
         // when
         List<GoodsSimpleResponse> result = goodsService.getGoodsForRegistration("마이멜로디");
@@ -76,6 +87,8 @@ class GoodsServiceTest {
         // then
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getName()).isEqualTo("마이멜로디 텀블러");
+        assertThat(result.get(0).getImageUrls())
+                .containsExactly("https://cdn.example.com/stores/1/goods/1/images/thumbnail.png");
     }
 
     @Test

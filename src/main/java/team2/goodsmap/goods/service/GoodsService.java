@@ -38,12 +38,18 @@ public class GoodsService {
 
     // 상품 목록 조회 (goods 테이블, 등록용) - GET /api/v1/goods?q
     public List<GoodsSimpleResponse> getGoodsForRegistration(String q) {
-        List<Goods> goodsList = (q == null || q.isBlank())
-                ? goodsRepository.findAll()
-                : goodsRepository.findByNameContainingIgnoreCase(q);
+        String keyword = q == null || q.isBlank() ? null : q.trim();
 
-        return goodsList.stream()
-                .map(GoodsSimpleResponse::from)
+        return goodsRepository.findGoodsForRegistration(keyword).stream()
+                .map(goods -> GoodsSimpleResponse.builder()
+                        .id(goods.goodsId())
+                        .name(goods.goodsName())
+                        .animationId(goods.animationId())
+                        .animationTitle(goods.animationTitle())
+                        .imageUrls(goods.imagePath() == null || goods.imagePath().isBlank()
+                                ? List.of()
+                                : List.of(toCdnUrl(goods.imagePath().trim())))
+                        .build())
                 .toList();
     }
 

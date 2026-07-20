@@ -17,8 +17,24 @@ public interface GoodsRepository extends JpaRepository<Goods, Long> {
     List<Goods> findAll();
 
     // 상품 목록 조회 (등록용) - GET /api/v1/goods?q
-    @EntityGraph(attributePaths = {"animation"})
-    List<Goods> findByNameContainingIgnoreCase(String q);
+    @Query("""
+        SELECT new team2.goodsmap.goods.dto.GoodsSearchRow(
+            g.id, g.name, a.id, a.title, sg.imagePath
+        )
+        FROM Goods g
+        JOIN g.animation a
+        LEFT JOIN StoreGoods sg ON sg.goods = g
+          AND sg.id = (
+              SELECT MIN(sg2.id)
+              FROM StoreGoods sg2
+              WHERE sg2.goods = g
+                AND sg2.imagePath IS NOT NULL
+                AND TRIM(sg2.imagePath) <> ''
+          )
+        WHERE (:q IS NULL OR :q = '' OR LOWER(g.name) LIKE LOWER(CONCAT('%', CAST(:q AS string), '%')))
+        ORDER BY g.id
+        """)
+    List<GoodsSearchRow> findGoodsForRegistration(@Param("q") String q);
 
     // 상품 목록 조회 (탐색용) - GET /api/v1/goods/search
     // StoreGoods를 조인해 지역 필터에 해당하는 업체의 이미지 경로까지 함께 조회
@@ -43,4 +59,3 @@ public interface GoodsRepository extends JpaRepository<Goods, Long> {
 
 
 }
-

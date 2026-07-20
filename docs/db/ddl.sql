@@ -102,3 +102,4 @@ ALTER TABLE "store_admin"
 
 ALTER TABLE "store_admin"   ADD CONSTRAINT "UQ_STORE_ADMIN"     UNIQUE ("user_id", "store_id");
 ALTER TABLE "store_goods"   ADD CONSTRAINT "UQ_STORE_GOODS"     UNIQUE ("store_id", "goods_id");
+CREATE INDEX "IDX_STORE_GOODS_GOODS_ID_ID" ON "store_goods" ("goods_id", "id");
